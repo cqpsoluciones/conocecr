@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="geolocation=*">
+<title>Conoce CR — Descubrí Santo Domingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Anton&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #0a0a0b;
+  --surface: #111114;
+  --glass: rgba(255,255,255,0.04);
+  --border: rgba(255,255,255,0.08);
+  --border-hi: rgba(255,255,255,0.18);
+  --text: #f0f0f0;
+  --muted: #6b6b75;
+  --accent: #c8c8cc;
+  --user-bg: #1e1e22;
+  --link: #7ecfa4;
+  --red: #cc2200;
+  --r: 20px;
+  --geo-bg: rgba(126,207,164,0.08);
+  --geo-border: rgba(126,207,164,0.25);
+  --geo-text: #7ecfa4;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ── NAV ─────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  height: 64px;
+  background: rgba(10,10,11,0.7);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s;
+}
+
+.nav-brand {
+  font-family: 'Anton', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+
+.nav-links a {
+  font-size: 13px;
+  font-weight: 400;
+  color: #a0a0aa;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -3px; left: 0;
+  width: 0; height: 1px;
+  background: #fff;
+  transition: width 0.2s ease;
+}
+
+.nav-links a:hover { color: #fff; }
+.nav-links a:hover::after { width: 100%; }
+.nav-links a.active { color: #fff; }
+.nav-links a.active::after { width: 100%; }
+
+.nav-cta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  border-radius: 999px;
+  padding: 7px 18px;
+  background: rgba(255,255,255,0.07);
+  transition: background 0.15s, border-color 0.15s !important;
+}
+
+.nav-cta:hover {
+  background: rgba(255,255,255,0.13) !important;
+  border-color: rgba(255,255,255,0.35) !important;
+}
+
+.nav-cta::after { display: none !important; }
+
+/* Mobile nav */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 22px; height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+/* ── HERO ─────────────────────────────────────────── */
+.hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 600px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 0;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10,10,11,0.25) 0%,
+    rgba(10,10,11,0.1) 40%,
+    rgba(10,10,11,0.6) 75%,
+    rgba(10,10,11,1) 100%
+  );
+  z-index: 1;
+}
+
+/* Logo centrado en el hero */
+.hero-logo-wrap {
+  position: absolute;
+  top: 50%;
+  right: 8%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.hero-logo {
+  width: clamp(220px, 30vw, 440px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 8px 40px rgba(0,0,0,0.6));
+}
+
+
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 40px 56px;
+  max-width: 640px;
+}
+
+.hero-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+.hero-title {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(32px, 5vw, 58px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 0.3px;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.hero-desc {
+  font-size: 15px;
+  font-weight: 300;
+  color: #b0b0b8;
+  line-height: 1.7;
+  max-width: 420px;
+  margin-bottom: 32px;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  color: #0a0a0b;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.hero-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.hero-btn svg {
+  width: 16px; height: 16px;
+  transition: transform 0.15s;
+}
+
+.hero-btn:hover svg { transform: translateX(3px); }
+
+/* ── CHAT SECTION ─────────────────────────────────── */
+.chat-section {
+  width: 100%;
+  background: var(--ink);
+  padding: 0;
+  position: relative;
+}
+
+.chat-label {
+  text-align: center;
+  padding: 48px 20px 24px;
+}
+
+.chat-label h2 {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 400;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.chat-label p {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--muted);
+}
+
+.chat-frame-wrap {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  height: 680px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.chat-frame-wrap iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.chat-section-bottom {
+  padding-bottom: 80px;
+}
+
+/* ── FOOTER ───────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+
+.footer-links a {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-links a:hover { color: #fff; }
+
+.footer-copy {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── MOBILE ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  nav { padding: 0 20px; }
+
+  .nav-links {
+    display: none;
+    position: fixed;
+    top: 64px; left: 0; right: 0;
+    background: rgba(10,10,11,0.97);
+    backdrop-filter: blur(24px);
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0 8px;
+    padding: 14px 16px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-links.open { display: flex; }
+
+  .nav-links li { width: auto; }
+
+  .nav-links a {
+    display: inline-block;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .nav-links a::after { display: none; }
+
+  .nav-toggle { display: flex; }
+
+  .hero-logo-wrap {
+    right: 50%;
+    transform: translate(50%, -50%);
+    top: 50%;
+  }
+
+  .hero-logo { width: clamp(160px, 55vw, 260px); }
+
+  .hero-content {
+    padding: 0 20px 56px;
+  }
+
+  .chat-frame-wrap {
+    height: 560px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  footer {
+    padding: 24px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="https://marcelosaenz.github.io/conocecr-chat/">
+    <img src="https://static.wixstatic.com/media/da6e7c_8eec0562fb80432084031482cfbafc82~mv2.png" alt="Conoce" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;">Conoce CR
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="https://marcelosaenz.github.io/conocecr-chat/" class="active">Inicio</a></li>
+    <li><a href="https://www.conocecr.com/category/all-products" target="_blank">Directorio</a></li>
+    <li><a href="https://www.conocecr.com/contacto" target="_blank">Contacto</a></li>
+    <li><a href="https://www.conocecr.com/agregarnegocio" target="_blank" class="nav-cta">Agregar negocio</a></li>
+  </ul>
+  <div class="nav-toggle" id="navToggle" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <video class="hero-video" autoplay muted loop playsinline preload="auto"
+    poster="https://static.wixstatic.com/media/da6e7c_b21f9ac36c514961a9564533a9e1ac61f001.jpg">
+    <source src="https://video.wixstatic.com/video/da6e7c_b21f9ac36c514961a9564533a9e1ac61/1080p/mp4/file.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+
+  <!-- Logo -->
+  <div class="hero-logo-wrap">
+    <img class="hero-logo"
+      src="https://static.wixstatic.com/media/da6e7c_754e35e91b124002852f5a1bace7cef1~mv2.png"
+      alt="Conoce CR">
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Santo Domingo de Heredia · Costa Rica</div>
+    <h1 class="hero-title">Conoce lo mejor<br>de Santo Domingo</h1>
+    <p class="hero-desc">Encontrá negocios, restaurantes y servicios locales con ayuda de IA. Rápido, natural y sin complicaciones.</p>
+    <a href="#chat" class="hero-btn">
+      Preguntale a Conoce AI
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- ── CHAT ── -->
+<section class="chat-section" id="chat">
+  <div class="chat-label">
+    <h2>¿Qué querés conocer hoy?</h2>
+    <p>Preguntá en lenguaje natural — el asistente entiende lo que buscás.</p>
+  </div>
+  <div class="chat-frame-wrap">
+    <iframe
+      src="./chat.html"
+      allow="geolocation"
+      loading="lazy"
+      title="Conoce AI Chat">
+    </iframe>
+  </div>
+  <div class="chat-section-bottom"></div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-brand">Conoce CR</div>
+  <ul class="footer-links">
+    <li><a href="https://www.conocecr.com/category/all-products" target="_blank">Directorio</a></li>
+    <li><a href="https://www.conocecr.com/contacto" target="_blank">Contacto</a></li>
+    <li><a href="https://www.conocecr.com/agregarnegocio" target="_blank">Agregar negocio</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 Conoce CR · Santo Domingo de Heredia</div>
+</footer>
+
+<script>
+// ── Nav toggle mobile ──────────────────────────────
+const navToggle = document.getElementById("navToggle");
+const navLinks  = document.getElementById("navLinks");
+
+navToggle.addEventListener("click", () => {
+  navLinks.classList.toggle("open");
+});
+
+// Cerrar menú al hacer clic en un link
+navLinks.querySelectorAll("a").forEach(a => {
+  a.addEventListener("click", () => navLinks.classList.remove("open"));
+});
+
+// ── Nav background al hacer scroll ────────────────
+const navbar = document.getElementById("navbar");
+window.addEventListener("scroll", () => {
+  if (window.scrollY > 60) {
+    navbar.style.background = "rgba(10,10,11,0.95)";
+  } else {
+    navbar.style.background = "rgba(10,10,11,0.7)";
+  }
+});
+
+// ── Smooth scroll al botón del hero ───────────────
+document.querySelector('a[href="#chat"]').addEventListener("click", e => {
+  e.preventDefault();
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+</body>
+</html>
