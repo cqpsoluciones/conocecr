@@ -28,7 +28,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Rutas (las vamos agregando de a una)
-// app.use('/api/chat', require('./routes/chat'));
+app.use('/api/chat', require('./routes/chat'));
 app.use('/api/businesses', require('./routes/businesses'));
 
 // Ruta de prueba para verificar que el servidor funciona
