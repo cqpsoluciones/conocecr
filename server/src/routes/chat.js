@@ -19,28 +19,44 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
 
 // Construye la query de filtrado según las señales detectadas
 const filtrarNegocios = async (senales, userLat, userLng) => {
-  const condiciones = ['b.active = true'];
   const params = [];
+  let negocios = [];
 
-  // Filtro por categoría
-  if (senales.categoria) {
-    params.push(senales.categoria);
-    condiciones.push(`b.categoria ILIKE $${params.length}`);
-  }
+  // Búsqueda principal: categoría + vibes + precio
+  const condiciones = ['b.active = true'];
 
-  // Filtro por precio
   if (senales.precio) {
     params.push(senales.precio);
     condiciones.push(`b.rango_precio = $${params.length}`);
   }
 
-  // Filtro por vibes (busca coincidencia en el texto de vibes)
   if (senales.vibes && senales.vibes.length > 0) {
     const vibeCondiciones = senales.vibes.map(vibe => {
       params.push(`%${vibe}%`);
       return `b.vibes ILIKE $${params.length}`;
     });
     condiciones.push(`(${vibeCondiciones.join(' OR ')})`);
+  }
+
+  // Filtro por categoría O descripción (búsqueda amplia)
+  if (senales.categoria) {
+    params.push(`%${senales.categoria}%`);
+    const catIndex = params.length;
+    params.push(`%${senales.intencion || senales.categoria}%`);
+    const descIndex = params.length;
+    condiciones.push(
+      `(b.categoria ILIKE $${catIndex} OR b.descripcion ILIKE $${descIndex} OR b.descripcion_emocional ILIKE $${descIndex})`
+    );
+  } else if (senales.intencion) {
+    // Sin categoría clara, buscar por intención en descripción
+    const palabras = senales.intencion.split(' ').filter(p => p.length > 3);
+    if (palabras.length > 0) {
+      const intentCondiciones = palabras.map(palabra => {
+        params.push(`%${palabra}%`);
+        return `(b.descripcion ILIKE $${params.length} OR b.descripcion_emocional ILIKE $${params.length} OR b.categoria ILIKE $${params.length})`;
+      });
+      condiciones.push(`(${intentCondiciones.join(' OR ')})`);
+    }
   }
 
   const query = `
@@ -54,14 +70,17 @@ const filtrarNegocios = async (senales, userLat, userLng) => {
   `;
 
   const result = await pool.query(query, params);
-  let negocios = result.rows;
+  negocios = result.rows;
 
-  // Si no hay resultados con filtros estrictos, traer todos activos
-  if (negocios.length === 0) {
+  // Fallback: si hay menos de 3 resultados, traer todos activos
+  if (negocios.length < 3) {
     const fallback = await pool.query(
       'SELECT * FROM businesses WHERE active = true ORDER BY nombre LIMIT 20'
     );
-    negocios = fallback.rows;
+    // Combinar sin duplicar
+    const ids = new Set(negocios.map(n => n.id));
+    const extras = fallback.rows.filter(n => !ids.has(n.id));
+    negocios = [...negocios, ...extras];
   }
 
   // Agregar distancia si el usuario compartió ubicación
@@ -74,7 +93,6 @@ const filtrarNegocios = async (senales, userLat, userLng) => {
       )
     }));
 
-    // Ordenar: si necesita cercanía, los más cercanos primero
     if (senales.necesita_cercania) {
       negocios.sort((a, b) => {
         if (!a.distancia_km) return 1;
