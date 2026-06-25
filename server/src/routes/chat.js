@@ -97,7 +97,9 @@ router.post('/', async (req, res) => {
 
     // ── Buscar negocios relevantes por embedding semántico ────────────────────
     const consultaEmbedding = senales.intencion || message;
-    let negocios = await buscarPorEmbedding(consultaEmbedding, 20);
+    let todosNegocios = await buscarPorEmbedding(consultaEmbedding, 20);
+    let negocios = todosNegocios.filter(b => parseFloat(b.similitud) >= 0.35);
+    if (negocios.length < 2) negocios = todosNegocios.slice(0, 5);
 
     // Filtrar por precio si fue detectado
     if (senales.precio) {
