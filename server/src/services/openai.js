@@ -153,4 +153,3 @@ const buscarPorEmbedding = async (consulta, limite = 20) => {
 
 module.exports = { extraerSenales, generarRespuesta, buscarPorEmbedding };
 
-module.exports = { extraerSenales, generarRespuesta };
