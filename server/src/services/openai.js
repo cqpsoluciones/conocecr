@@ -102,6 +102,7 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '---',
     '- Al final, si hay mas negocios disponibles, agrega exactamente: [VER_MAS_DISPONIBLE]',
     '- NUNCA inventes datos ni rellenes con "No disponible"',
+    '- NUNCA atribuyas productos o servicios a un negocio si no están explícitamente mencionados en sus datos',
     '- Responde siempre en espanol',
     '- Se conversacional, no robotico'
   ].join('\n');

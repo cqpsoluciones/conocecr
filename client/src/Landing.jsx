@@ -12,10 +12,13 @@ export default function Landing() {
           Conoce CR
         </a>
         <ul className="nav-links" id="navLinks">
-          <li><a href="/" className="active">Inicio</a></li>
-          <li><a href="https://www.crconoce.com/category/all-products">Directorio</a></li>
-          <li><a href="https://www.crconoce.com/contacto">Contacto</a></li>
-          <li><a href="https://www.crconoce.com/agregarnegocio" className="nav-cta">Agregar negocio</a></li>
+        <li><a href="#inicio" onClick={e => {
+        e.preventDefault()
+         window.scrollTo({ top: 0, behavior: 'smooth' })
+        }} className="active">Inicio</a></li>
+        <li><a href="https://www.crconoce.com/category/all-products" target="_blank" rel="noopener">Directorio</a></li>
+        <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener">Contacto</a></li>
+        <li><a href="https://www.crconoce.com/agregarnegocio" target="_blank" rel="noopener" className="nav-cta">Agregar negocio</a></li>
         </ul>
         <div className="nav-toggle" id="navToggle" aria-label="Menú">
           <span></span><span></span><span></span>
