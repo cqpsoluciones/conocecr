@@ -126,4 +126,31 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
   return { reply, hasMore };
 };
 
+const buscarPorEmbedding = async (consulta, limite = 20) => {
+  const response = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: consulta
+  });
+
+  const embedding = response.data[0].embedding;
+  const vectorStr = `[${embedding.join(',')}]`;
+
+  const pool = require('../src/db');
+  const { rows } = await pool.query(
+    `SELECT id, nombre, categoria, descripcion, descripcion_emocional,
+            vibes, direccion, whatsapp, instagram, facebook,
+            sitio_web, rango_precio, horario, lat, lng,
+            1 - (embedding <=> $1::vector) AS similitud
+     FROM businesses
+     WHERE active = true AND embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector
+     LIMIT $2`,
+    [vectorStr, limite]
+  );
+
+  return rows;
+};
+
+module.exports = { extraerSenales, generarRespuesta, buscarPorEmbedding };
+
 module.exports = { extraerSenales, generarRespuesta };

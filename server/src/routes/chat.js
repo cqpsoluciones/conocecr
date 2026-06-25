@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
-const { extraerSenales, generarRespuesta } = require('../services/openai');
+const { extraerSenales, generarRespuesta, buscarPorEmbedding } = require('../services/openai');
 
 // Fórmula Haversine para calcular distancia entre dos coordenadas en km
 const calcularDistancia = (lat1, lng1, lat2, lng2) => {
@@ -15,94 +15,6 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
     Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
-};
-
-// Construye la query de filtrado según las señales detectadas
-const filtrarNegocios = async (senales, userLat, userLng) => {
-  const params = [];
-  let negocios = [];
-
-  // Búsqueda principal: categoría + vibes + precio
-  const condiciones = ['b.active = true'];
-
-  if (senales.precio) {
-    params.push(senales.precio);
-    condiciones.push(`b.rango_precio = $${params.length}`);
-  }
-
-  if (senales.vibes && senales.vibes.length > 0) {
-    const vibeCondiciones = senales.vibes.map(vibe => {
-      params.push(`%${vibe}%`);
-      return `b.vibes ILIKE $${params.length}`;
-    });
-    condiciones.push(`(${vibeCondiciones.join(' OR ')})`);
-  }
-
-  // Filtro por categoría O descripción (búsqueda amplia)
-  if (senales.categoria) {
-    params.push(`%${senales.categoria}%`);
-    const catIndex = params.length;
-    params.push(`%${senales.intencion || senales.categoria}%`);
-    const descIndex = params.length;
-    condiciones.push(
-      `(b.categoria ILIKE $${catIndex} OR b.descripcion ILIKE $${descIndex} OR b.descripcion_emocional ILIKE $${descIndex})`
-    );
-  } else if (senales.intencion) {
-    // Sin categoría clara, buscar por intención en descripción
-    const palabras = senales.intencion.split(' ').filter(p => p.length > 3);
-    if (palabras.length > 0) {
-      const intentCondiciones = palabras.map(palabra => {
-        params.push(`%${palabra}%`);
-        return `(b.descripcion ILIKE $${params.length} OR b.descripcion_emocional ILIKE $${params.length} OR b.categoria ILIKE $${params.length})`;
-      });
-      condiciones.push(`(${intentCondiciones.join(' OR ')})`);
-    }
-  }
-
-  const query = `
-    SELECT b.id, b.nombre, b.categoria, b.descripcion, b.descripcion_emocional,
-           b.vibes, b.direccion, b.whatsapp, b.instagram, b.facebook,
-           b.sitio_web, b.rango_precio, b.horario, b.lat, b.lng
-    FROM businesses b
-    WHERE ${condiciones.join(' AND ')}
-    ORDER BY b.nombre
-    LIMIT 20
-  `;
-
-  const result = await pool.query(query, params);
-  negocios = result.rows;
-
-  // Fallback: si hay menos de 3 resultados, traer todos activos
-  if (negocios.length < 3) {
-    const fallback = await pool.query(
-      'SELECT * FROM businesses WHERE active = true ORDER BY nombre LIMIT 20'
-    );
-    // Combinar sin duplicar
-    const ids = new Set(negocios.map(n => n.id));
-    const extras = fallback.rows.filter(n => !ids.has(n.id));
-    negocios = [...negocios, ...extras];
-  }
-
-  // Agregar distancia si el usuario compartió ubicación
-  if (userLat && userLng) {
-    negocios = negocios.map(b => ({
-      ...b,
-      distancia_km: calcularDistancia(
-        parseFloat(userLat), parseFloat(userLng),
-        parseFloat(b.lat), parseFloat(b.lng)
-      )
-    }));
-
-    if (senales.necesita_cercania) {
-      negocios.sort((a, b) => {
-        if (!a.distancia_km) return 1;
-        if (!b.distancia_km) return -1;
-        return parseFloat(a.distancia_km) - parseFloat(b.distancia_km);
-      });
-    }
-  }
-
-  return negocios;
 };
 
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
@@ -149,12 +61,10 @@ router.post('/', async (req, res) => {
     let senales;
 
     if (!session.senales_extraidas) {
-      // PRIMER MENSAJE: extraer señales con OpenAI
       console.log('Primer mensaje — extrayendo señales...');
       senales = await extraerSenales(message);
       console.log('Señales extraídas:', senales);
 
-      // Guardar señales en la sesión
       await pool.query(
         `UPDATE chat_sessions SET
           vibes_detectadas = $1,
@@ -174,7 +84,6 @@ router.post('/', async (req, res) => {
         ]
       );
     } else {
-      // MENSAJES SIGUIENTES: usar señales guardadas
       senales = {
         vibes: session.vibes_detectadas
           ? session.vibes_detectadas.split(', ')
@@ -186,12 +95,32 @@ router.post('/', async (req, res) => {
       };
     }
 
-    // ── Filtrar negocios relevantes en PostgreSQL ─────────────────────────────
-    const negocios = await filtrarNegocios(
-      senales,
-      userLat || session.user_lat,
-      userLng || session.user_lng
-    );
+    // ── Buscar negocios relevantes por embedding semántico ────────────────────
+    const consultaEmbedding = senales.intencion || message;
+    let negocios = await buscarPorEmbedding(consultaEmbedding, 20);
+
+    // Filtrar por precio si fue detectado
+    if (senales.precio) {
+      const conPrecio = negocios.filter(b => b.rango_precio === senales.precio);
+      if (conPrecio.length >= 2) negocios = conPrecio;
+    }
+
+    // Agregar distancia y ordenar por cercanía si aplica
+    if (userLat || session.user_lat) {
+      const lat = parseFloat(userLat || session.user_lat);
+      const lng = parseFloat(userLng || session.user_lng);
+      negocios = negocios.map(b => ({
+        ...b,
+        distancia_km: calcularDistancia(lat, lng, parseFloat(b.lat), parseFloat(b.lng))
+      }));
+      if (senales.necesita_cercania) {
+        negocios.sort((a, b) => {
+          if (!a.distancia_km) return 1;
+          if (!b.distancia_km) return -1;
+          return parseFloat(a.distancia_km) - parseFloat(b.distancia_km);
+        });
+      }
+    }
 
     // ── Generar respuesta con OpenAI ──────────────────────────────────────────
     const { reply, hasMore } = await generarRespuesta(
