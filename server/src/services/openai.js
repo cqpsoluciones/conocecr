@@ -135,7 +135,7 @@ const buscarPorEmbedding = async (consulta, limite = 20) => {
   const embedding = response.data[0].embedding;
   const vectorStr = `[${embedding.join(',')}]`;
 
-  const pool = require('../src/db');
+  const pool = require('../db');
   const { rows } = await pool.query(
     `SELECT id, nombre, categoria, descripcion, descripcion_emocional,
             vibes, direccion, whatsapp, instagram, facebook,
