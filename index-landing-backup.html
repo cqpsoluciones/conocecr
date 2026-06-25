@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="geolocation=*">
+<title>Conoce CR — Descubrí Santo Domingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Anton&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -101,6 +111,7 @@ nav {
 
 .nav-cta::after { display: none !important; }
 
+/* Mobile nav */
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -150,6 +161,7 @@ nav {
   z-index: 1;
 }
 
+/* Logo centrado en el hero */
 .hero-logo-wrap {
   position: absolute;
   top: 50%;
@@ -164,6 +176,8 @@ nav {
   display: block;
   filter: drop-shadow(0 8px 40px rgba(0,0,0,0.6));
 }
+
+
 
 .hero-content {
   position: relative;
@@ -336,6 +350,7 @@ footer {
   }
 
   .nav-links.open { display: flex; }
+
   .nav-links li { width: auto; }
 
   .nav-links a {
@@ -345,6 +360,7 @@ footer {
   }
 
   .nav-links a::after { display: none; }
+
   .nav-toggle { display: flex; }
 
   .hero-logo-wrap {
@@ -355,7 +371,9 @@ footer {
 
   .hero-logo { width: clamp(160px, 55vw, 260px); }
 
-  .hero-content { padding: 0 20px 56px; }
+  .hero-content {
+    padding: 0 20px 56px;
+  }
 
   .chat-frame-wrap {
     height: 560px;
@@ -371,3 +389,111 @@ footer {
     gap: 20px;
   }
 }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="https://marcelosaenz.github.io/conocecr-chat/">
+    <img src="https://static.wixstatic.com/media/da6e7c_8eec0562fb80432084031482cfbafc82~mv2.png" alt="Conoce" style="height:28px;width:auto;vertical-align:middle;margin-right:8px;">Conoce CR
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="https://marcelosaenz.github.io/conocecr-chat/" class="active">Inicio</a></li>
+    <li><a href="https://www.crconoce.com/category/all-products" target="_blank">Directorio</a></li>
+    <li><a href="https://www.crconoce.com/contacto" target="_blank">Contacto</a></li>
+    <li><a href="https://www.crconoce.com/agregarnegocio" target="_blank" class="nav-cta">Agregar negocio</a></li>
+  </ul>
+  <div class="nav-toggle" id="navToggle" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <video class="hero-video" autoplay muted loop playsinline preload="auto"
+    poster="https://static.wixstatic.com/media/da6e7c_b21f9ac36c514961a9564533a9e1ac61f001.jpg">
+    <source src="https://video.wixstatic.com/video/da6e7c_b21f9ac36c514961a9564533a9e1ac61/1080p/mp4/file.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+
+  <!-- Logo -->
+  <div class="hero-logo-wrap">
+    <img class="hero-logo"
+      src="https://static.wixstatic.com/media/da6e7c_754e35e91b124002852f5a1bace7cef1~mv2.png"
+      alt="Conoce CR">
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Santo Domingo de Heredia · Costa Rica</div>
+    <h1 class="hero-title">Conoce lo mejor<br>de Santo Domingo</h1>
+    <p class="hero-desc">Encontrá negocios, restaurantes y servicios locales con ayuda de IA. Rápido, natural y sin complicaciones.</p>
+    <a href="#chat" class="hero-btn">
+      Preguntale a Conoce AI
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- ── CHAT ── -->
+<section class="chat-section" id="chat">
+  <div class="chat-label">
+    <h2>¿Qué querés conocer hoy?</h2>
+    <p>Preguntá en lenguaje natural — el asistente entiende lo que buscás.</p>
+  </div>
+  <div class="chat-frame-wrap">
+    <iframe
+      src="./chat.html"
+      allow="geolocation"
+      loading="lazy"
+      title="Conoce AI Chat">
+    </iframe>
+  </div>
+  <div class="chat-section-bottom"></div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-brand">Conoce CR</div>
+  <ul class="footer-links">
+    <li><a href="https://www.crconoce.com/category/all-products" target="_blank">Directorio</a></li>
+    <li><a href="https://www.crconoce.com/contacto" target="_blank">Contacto</a></li>
+    <li><a href="https://www.crconoce.com/agregarnegocio" target="_blank">Agregar negocio</a></li>
+  </ul>
+  <div class="footer-copy">© 2026 Conoce CR · Santo Domingo de Heredia</div>
+</footer>
+
+<script>
+// ── Nav toggle mobile ──────────────────────────────
+const navToggle = document.getElementById("navToggle");
+const navLinks  = document.getElementById("navLinks");
+
+navToggle.addEventListener("click", () => {
+  navLinks.classList.toggle("open");
+});
+
+// Cerrar menú al hacer clic en un link
+navLinks.querySelectorAll("a").forEach(a => {
+  a.addEventListener("click", () => navLinks.classList.remove("open"));
+});
+
+// ── Nav background al hacer scroll ────────────────
+const navbar = document.getElementById("navbar");
+window.addEventListener("scroll", () => {
+  if (window.scrollY > 60) {
+    navbar.style.background = "rgba(10,10,11,0.95)";
+  } else {
+    navbar.style.background = "rgba(10,10,11,0.7)";
+  }
+});
+
+// ── Smooth scroll al botón del hero ───────────────
+document.querySelector('a[href="#chat"]').addEventListener("click", e => {
+  e.preventDefault();
+  document.getElementById("chat").scrollIntoView({ behavior: "smooth" });
+});
+</script>
+</body>
+</html>
