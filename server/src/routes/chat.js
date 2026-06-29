@@ -59,12 +59,14 @@ router.post('/', async (req, res) => {
 
     // ── Determinar señales a usar ─────────────────────────────────────────────
     let senales;
+    const esPrimerMensaje = !session.senales_extraidas;
 
-    if (!session.senales_extraidas) {
-      console.log('Primer mensaje — extrayendo señales...');
-      senales = await extraerSenales(message);
-      console.log('Señales extraídas:', senales);
+    // Siempre extraer señales frescas para mantener contexto
+    senales = await extraerSenales(message);
+    console.log('Señales extraídas:', senales);
 
+    // En el primer mensaje guardar señales base en la sesión
+    if (esPrimerMensaje) {
       await pool.query(
         `UPDATE chat_sessions SET
           vibes_detectadas = $1,
@@ -83,16 +85,6 @@ router.post('/', async (req, res) => {
           sessionId
         ]
       );
-    } else {
-      senales = {
-        vibes: session.vibes_detectadas
-          ? session.vibes_detectadas.split(', ')
-          : [],
-        categoria: session.categoria_detectada,
-        precio: session.precio_detectado,
-        necesita_cercania: session.necesita_cercania,
-        intencion: session.intencion
-      };
     }
 
     // ── Buscar negocios relevantes por embedding semántico ────────────────────
