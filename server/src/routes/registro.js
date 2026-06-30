@@ -1,7 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const pool = require('../db');
 const { enviarSolicitudNegocio } = require('../services/email');
+const { subirMenu } = require('../services/cloudinary');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // máximo 10MB
+  fileFilter: (req, file, cb) => {
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (tiposPermitidos.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos PNG, JPG o PDF'));
+    }
+  }
+});
 
 // Geocodificar dirección con Google Maps
 const geocodificar = async (direccion) => {
@@ -28,7 +43,8 @@ const generarID = (nombre) => {
 };
 
 // POST /api/registro — recibir formulario
-router.post('/', async (req, res) => {
+// POST /api/registro — recibir formulario
+router.post('/', upload.single('menu'), async (req, res) => {
   try {
     const {
       nombre, categoria, descripcion, descripcionEmocional,
@@ -52,30 +68,39 @@ router.post('/', async (req, res) => {
     const whatsappLimpio = whatsapp.replace(/\D/g, '');
     const whatsappUrl = `https://wa.me/506${whatsappLimpio}`;
 
+    // Subir menú a Cloudinary si fue adjuntado
+    let menuUrl = null;
+    if (req.file) {
+      menuUrl = await subirMenu(req.file.buffer, nombre);
+    }
+
+    // vibes puede llegar como string JSON desde FormData
+    const vibesArray = typeof vibes === 'string' ? JSON.parse(vibes) : vibes;
+
     // Guardar solicitud en PostgreSQL
     await pool.query(
       `INSERT INTO solicitudes (
         id, nombre, categoria, descripcion, descripcion_emocional,
         vibes, direccion, horario, whatsapp, instagram,
-        tiktok, facebook, sitio_web, rango_precio, lat, lng, estado
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'Pendiente')`,
+        tiktok, facebook, sitio_web, rango_precio, lat, lng, estado, menu_url
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'Pendiente',$17)`,
       [
         id, nombre, categoria, descripcion, descripcionEmocional,
-        Array.isArray(vibes) ? vibes.join(', ') : vibes,
+        vibesArray.join(', '),
         direccion, horario, whatsappUrl,
         instagram || null, tiktok || null, facebook || null,
         sitioWeb || null, rangoPrecio || null,
-        lat, lng
+        lat, lng, menuUrl
       ]
     );
 
     // Enviar correo al admin
     await enviarSolicitudNegocio({
       id, nombre, categoria, descripcion, descripcionEmocional,
-      vibes: Array.isArray(vibes) ? vibes : vibes.split(', '),
+      vibes: vibesArray,
       direccion, horario, whatsapp: whatsappUrl,
       instagram, tiktok, facebook, sitioWeb, rangoPrecio,
-      lat, lng
+      lat, lng, menuUrl
     });
 
     res.json({ ok: true, id });
