@@ -12,12 +12,12 @@ app.use(helmet());
 // Configuración de CORS, solo acepta requests desde tu frontend. En desarrollo acepta localhost:3000, en producción solo conocecr.com.
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'https://conocecr.com', 
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Parsear JSON en las requests, le dice a Express que entienda JSON en el body de las requests. El límite de 10kb protege contra requests maliciosamente grandes.
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '100kb' }));
 
 // Rate limiting: máximo 100 requests por IP cada 15 minutos, Esto protege tu cuenta de OpenAI de costos inesperados.
 const limiter = rateLimit({  
@@ -32,6 +32,7 @@ app.use('/api/chat', require('./routes/chat'));
 app.use('/api/businesses', require('./routes/businesses'));
 app.use('/api/registro', require('./routes/registro'));
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
