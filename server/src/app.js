@@ -30,6 +30,7 @@ app.use('/api', limiter);
 // Rutas (las vamos agregando de a una)
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/businesses', require('./routes/businesses'));
+app.use('/api/registro', require('./routes/registro'));
 
 // Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
