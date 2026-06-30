@@ -13,7 +13,7 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'https://conocecr.com', 
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Parsear JSON en las requests, le dice a Express que entienda JSON en el body de las requests. El límite de 10kb protege contra requests maliciosamente grandes.
@@ -31,6 +31,7 @@ app.use('/api', limiter);
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/businesses', require('./routes/businesses'));
 app.use('/api/registro', require('./routes/registro'));
+app.use('/api/auth', require('./routes/auth'));
 
 // Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {

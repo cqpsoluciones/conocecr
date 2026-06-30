@@ -19,7 +19,8 @@ const enviarSolicitudNegocio = async (datos) => {
     ? `https://www.google.com/maps?q=${lat},${lng}`
     : `https://www.google.com/maps/search/${encodeURIComponent(direccion + ', Santo Domingo, Heredia, Costa Rica')}`;
 
-  const approvalUrl = `${process.env.RAILWAY_URL || 'https://conocecr-production.up.railway.app'}/api/registro/aprobar/${id}`;
+   const frontendUrl = process.env.FRONTEND_URL || 'https://conocecr.com';
+  const approvalUrl = `${frontendUrl}/admin/revisar/${id}`;
   const rejectUrl = `${process.env.RAILWAY_URL || 'https://conocecr-production.up.railway.app'}/api/registro/rechazar/${id}`;
 
   const campo = (label, valor, esLink = false) => `

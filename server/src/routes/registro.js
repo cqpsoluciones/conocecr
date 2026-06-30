@@ -4,6 +4,7 @@ const multer = require('multer');
 const pool = require('../db');
 const { enviarSolicitudNegocio } = require('../services/email');
 const { subirMenu } = require('../services/cloudinary');
+const { verificarToken } = require('../middleware/auth');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -111,8 +112,93 @@ router.post('/', upload.single('menu'), async (req, res) => {
   }
 });
 
+// GET /api/registro/solicitud/:id — obtener datos para revisión (requiere auth)
+router.get('/solicitud/:id', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      'SELECT * FROM solicitudes WHERE id = $1',
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Solicitud no encontrada' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Error al obtener solicitud:', err);
+    res.status(500).json({ error: 'Error al obtener la solicitud' });
+  }
+});
+
+// POST /api/registro/confirmar/:id — aprobar con datos editados (requiere auth)
+router.post('/confirmar/:id', verificarToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      nombre, categoria, descripcion, descripcion_emocional,
+      vibes, direccion, horario, whatsapp, instagram,
+      facebook, sitio_web, rango_precio, lat, lng
+    } = req.body;
+
+    // Insertar en businesses con los datos (posiblemente editados)
+    const { rows: inserted } = await pool.query(
+      `INSERT INTO businesses (
+        nombre, categoria, descripcion, descripcion_emocional,
+        vibes, direccion, horario, whatsapp, instagram,
+        facebook, sitio_web, rango_precio, lat, lng, active
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
+      RETURNING id`,
+      [
+        nombre, categoria, descripcion, descripcion_emocional,
+        Array.isArray(vibes) ? vibes.join(', ') : vibes,
+        direccion, horario, whatsapp, instagram,
+        facebook, sitio_web, rango_precio, lat, lng
+      ]
+    );
+
+    // Generar embedding
+    const businessId = inserted[0].id;
+    const OpenAI = require('openai');
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const texto = [
+      `Nombre: ${nombre}`,
+      `Categoría: ${categoria}`,
+      `Descripción: ${descripcion}`,
+      `Descripción emocional: ${descripcion_emocional}`,
+      `Vibes: ${Array.isArray(vibes) ? vibes.join(', ') : vibes}`,
+      `Dirección: ${direccion}`,
+      `Precio: ${rango_precio || ''}`,
+      `Horario: ${horario || ''}`
+    ].join('\n');
+
+    const embeddingRes = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: texto
+    });
+
+    const embedding = embeddingRes.data[0].embedding;
+    await pool.query(
+      'UPDATE businesses SET embedding = $1 WHERE id = $2',
+      [`[${embedding.join(',')}]`, businessId]
+    );
+
+    // Actualizar estado solicitud
+    await pool.query(
+      "UPDATE solicitudes SET estado = 'Aprobado' WHERE id = $1",
+      [id]
+    );
+
+    res.json({ ok: true, businessId });
+
+  } catch (err) {
+    console.error('Error al confirmar negocio:', err);
+    res.status(500).json({ error: 'Error al aprobar el negocio' });
+  }
+});
+
 // GET /api/registro/aprobar/:id
-router.get('/aprobar/:id', async (req, res) => {
+router.get('/aprobar/:id', verificarToken, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -206,7 +292,7 @@ router.get('/aprobar/:id', async (req, res) => {
 });
 
 // GET /api/registro/rechazar/:id
-router.get('/rechazar/:id', async (req, res) => {
+router.get('/rechazar/:id', verificarToken, async (req, res) => {
   try {
     const { id } = req.params;
 
