@@ -22,11 +22,18 @@ const RANGOS = [
   '₡10.000 - ₡15.000', 'Más de ₡15.000', 'No aplica'
 ]
 
+const CATEGORIAS_COMIDA = [
+  'Restaurante', 'Cafetería / Café', 'Heladería', 'Panadería / Repostería', 'Bar'
+]
+
+
+
 export default function Registro() {
   const [form, setForm] = useState({
     nombre: '', categoria: '', descripcion: '', descripcionEmocional: '',
     vibes: [], direccion: '', horario: '', whatsapp: '',
-    instagram: '', tiktok: '', facebook: '', sitioWeb: '', rangoPrecio: ''
+    instagram: '', tiktok: '', facebook: '', sitioWeb: '', rangoPrecio: '',
+    menu: null
   })
   const [estado, setEstado] = useState('idle') // idle | loading | success | error
   const [error, setError] = useState('')
@@ -61,7 +68,20 @@ export default function Registro() {
     setError('')
     setEstado('loading')
     try {
-      await axios.post(`${API_URL}/registro`, form)
+      const formData = new FormData()
+      Object.keys(form).forEach(key => {
+        if (key === 'vibes') {
+          formData.append('vibes', JSON.stringify(form.vibes))
+        } else if (key === 'menu') {
+          if (form.menu) formData.append('menu', form.menu)
+        } else {
+          formData.append(key, form[key])
+        }
+      })
+
+      await axios.post(`${API_URL}/registro`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
       setEstado('success')
     } catch (e) {
       setEstado('error')
@@ -178,7 +198,7 @@ export default function Registro() {
           </div>
 
           {/* SECCIÓN 3 — UBICACIÓN Y HORARIO */}
-          <div className="reg-section">
+         <div className="reg-section">
             <div className="reg-section-title">UBICACIÓN Y HORARIO</div>
 
             <div className="reg-field">
@@ -200,6 +220,25 @@ export default function Registro() {
                 onChange={e => set('horario', e.target.value)}
               />
             </div>
+
+            {CATEGORIAS_COMIDA.includes(form.categoria) && (
+              <div className="reg-field">
+                <label className="reg-label">MENÚ (PDF, JPG O PNG)</label>
+                <div className="reg-file-wrap">
+                  <input
+                    type="file"
+                    id="menu-upload"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={e => set('menu', e.target.files[0] || null)}
+                    className="reg-file-input"
+                  />
+                  <label htmlFor="menu-upload" className="reg-file-label">
+                    {form.menu ? `📎 ${form.menu.name}` : '📎 Subir menú'}
+                  </label>
+                </div>
+                <span className="reg-hint">Opcional. Ayuda a la IA a recomendar tu negocio con más precisión.</span>
+              </div>
+            )}
           </div>
 
           {/* SECCIÓN 4 — CONTACTO */}
