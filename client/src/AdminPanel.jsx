@@ -55,7 +55,19 @@ export default function AdminPanel() {
 
       <div className="admin-container">
         <div className="admin-header">
-          <h1>Negocios</h1>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h1 style={{ margin: 0 }}>Negocios</h1>
+            <Link to="/admin/chats" style={{
+              fontSize: '13px',
+              color: '#7ecfa4',
+              textDecoration: 'none',
+              border: '1px solid rgba(126,207,164,0.3)',
+              padding: '7px 14px',
+              borderRadius: '999px'
+            }}>
+              Ver conversaciones →
+            </Link>
+          </div>
           <input
             className="admin-search"
             placeholder="Buscar por nombre o categoría..."
