@@ -39,8 +39,9 @@ const generarID = (nombre) => {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^A-Z0-9]/g, '_')
     .replace(/_+/g, '_')
-    .slice(0, 30);
-  return `${fecha}-${nombreLimpio}`;
+    .slice(0, 25);
+  const sufijo = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return `${fecha}-${nombreLimpio}-${sufijo}`;
 };
 
 // POST /api/registro — recibir formulario
