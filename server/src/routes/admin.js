@@ -113,4 +113,51 @@ router.get('/solicitudes', verificarToken, async (req, res) => {
   }
 });
 
+
+
+// GET /api/admin/chats — listar sesiones de chat
+router.get('/chats', verificarToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT cs.id, cs.created_at, cs.intencion,
+              COUNT(cm.id) as total_mensajes
+       FROM chat_sessions cs
+       LEFT JOIN chat_messages cm ON cm.session_id = cs.id
+       GROUP BY cs.id, cs.created_at, cs.intencion
+       ORDER BY cs.created_at DESC
+       LIMIT 100`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al listar chats:', err);
+    res.status(500).json({ error: 'Error al listar chats' });
+  }
+});
+
+// GET /api/admin/chats/:id — obtener mensajes de una sesión
+router.get('/chats/:id', verificarToken, async (req, res) => {
+  try {
+    const { rows: sesion } = await pool.query(
+      'SELECT * FROM chat_sessions WHERE id = $1',
+      [req.params.id]
+    );
+
+    const { rows: mensajes } = await pool.query(
+      `SELECT role, content, created_at FROM chat_messages
+       WHERE session_id = $1
+       ORDER BY created_at ASC`,
+      [req.params.id]
+    );
+
+    if (sesion.length === 0) {
+      return res.status(404).json({ error: 'Sesión no encontrada' });
+    }
+
+    res.json({ sesion: sesion[0], mensajes });
+  } catch (err) {
+    console.error('Error al obtener chat:', err);
+    res.status(500).json({ error: 'Error al obtener el chat' });
+  }
+});
+
 module.exports = router;
