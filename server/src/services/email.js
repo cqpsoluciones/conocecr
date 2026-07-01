@@ -1,15 +1,6 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD
-  },
-  family: 4
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const enviarSolicitudNegocio = async (datos) => {
   const {
@@ -22,7 +13,7 @@ const enviarSolicitudNegocio = async (datos) => {
     ? `https://www.google.com/maps?q=${lat},${lng}`
     : `https://www.google.com/maps/search/${encodeURIComponent(direccion + ', Santo Domingo, Heredia, Costa Rica')}`;
 
-   const frontendUrl = process.env.FRONTEND_URL || 'https://conocecr.com';
+  const frontendUrl = process.env.FRONTEND_URL || 'https://conocecr.com';
   const approvalUrl = `${frontendUrl}/admin/revisar/${id}`;
   const rejectUrl = `${process.env.RAILWAY_URL || 'https://conocecr-production.up.railway.app'}/api/registro/rechazar/${id}`;
 
@@ -129,7 +120,7 @@ const enviarSolicitudNegocio = async (datos) => {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="50%" style="padding-right: 6px;">
-                    <a href="${approvalUrl}" style="display: block; background: #7ecfa4; color: #0a0a0b; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font-family: Arial, sans-serif;">✅ Aprobar negocio</a>
+                    <a href="${approvalUrl}" style="display: block; background: #7ecfa4; color: #0a0a0b; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; font-family: Arial, sans-serif;">✅ Revisar y aprobar</a>
                   </td>
                   <td width="50%" style="padding-left: 6px;">
                     <a href="${rejectUrl}" style="display: block; background: #0a0a0b; color: #cc2200; font-size: 14px; font-weight: 600; text-align: center; padding: 14px; border-radius: 10px; text-decoration: none; border: 1px solid #cc2200; font-family: Arial, sans-serif;">❌ Rechazar</a>
@@ -153,8 +144,8 @@ const enviarSolicitudNegocio = async (datos) => {
 </html>
   `;
 
-  await transporter.sendMail({
-    from: `"Conoce CR" <${process.env.GMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'Conoce CR <onboarding@resend.dev>',
     to: process.env.GMAIL_USER,
     subject: `Nueva solicitud: ${nombre}`,
     html
