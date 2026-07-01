@@ -64,8 +64,10 @@ const extraerSenales = async (mensaje) => {
 
 const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion) => {
   const listaNegocios = negocios.map(function(b) {
-    const dist = b.distancia_km ? ' - a ' + b.distancia_km + ' km de vos' : '';
-    return '- ' + b.nombre + ' (' + b.categoria + ')' + dist + ': ' + (b.descripcion || '') + '. ' +
+    const dist = b.distancia_km ? b.distancia_km + ' km' : null;
+    return '- ' + b.nombre + ' (' + b.categoria + ')' +
+      (dist ? ' [DISTANCIA: ' + dist + ']' : ' [DISTANCIA: no disponible]') +
+      ': ' + (b.descripcion || '') + '. ' +
       'Vibes: ' + (b.vibes || 'N/A') + '. ' +
       'Dir: ' + b.direccion + '. ' +
       'WA: ' + (b.whatsapp || 'No disponible') + '. ' +
@@ -95,7 +97,9 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '- Si el usuario no ha dado suficiente contexto, hacé 1 o 2 preguntas cortas y conversacionales antes de recomendar',
     '- Una vez que tenés contexto, recomendá entre 3 y 5 negocios máximo',
     '- Priorizá negocios cuyas vibes y descripción emocional coincidan con lo que busca el usuario',
-    '- Si hay distancias disponibles, mencioná primero los más cercanos',
+     '- SIEMPRE mostrá la distancia de cada negocio si está disponible, en el formato: 📍 [Dirección] · ~[X.X km]',
+    '- Si no hay distancia disponible para un negocio, no menciones la distancia',
+    '- Ordená los resultados de más cercano a más lejano cuando hay distancias disponibles',
     '',
     'FORMATO DE CADA NEGOCIO (usá solo los campos que tengan datos reales):',
     '---',
