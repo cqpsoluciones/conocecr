@@ -1,29 +1,38 @@
 import './App.css'
+import { useState } from 'react'
+
+
 export default function Landing() {
+    const [menuAbierto, setMenuAbierto] = useState(false)
   return (
     <>
       <nav id="navbar">
         <a className="nav-brand" href="/">
-          <img
-            src="https://static.wixstatic.com/media/da6e7c_8eec0562fb80432084031482cfbafc82~mv2.png"
-            alt="Conoce"
-            style={{ height: '28px', width: 'auto', verticalAlign: 'middle', marginRight: '8px' }}
-          />
-          Conoce CR
+        <img
+        src="https://static.wixstatic.com/media/da6e7c_8eec0562fb80432084031482cfbafc82~mv2.png"
+        alt="Conoce"
+        style={{ height: '28px', width: 'auto', verticalAlign: 'middle', marginRight: '8px' }}
+        />
+        Conoce CR
         </a>
-        <ul className="nav-links" id="navLinks">
+        <ul className={`nav-links ${menuAbierto ? 'open' : ''}`} id="navLinks">
         <li><a href="#inicio" onClick={e => {
         e.preventDefault()
-         window.scrollTo({ top: 0, behavior: 'smooth' })
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        setMenuAbierto(false)
         }} className="active">Inicio</a></li>
-        <li><a href="https://www.crconoce.com/category/all-products" target="_blank" rel="noopener">Directorio</a></li>
-        <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener">Contacto</a></li>
-        <li><a href="/registro" className="nav-cta">Agregar negocio</a></li>
+        <li><a href="https://www.crconoce.com/category/all-products" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Directorio</a></li>
+        <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
+        <li><a href="/registro" className="nav-cta" onClick={() => setMenuAbierto(false)}>Agregar negocio</a></li>
         </ul>
-        <div className="nav-toggle" id="navToggle" aria-label="Menú">
-          <span></span><span></span><span></span>
+        <div
+        className="nav-toggle"
+        aria-label="Menú"
+        onClick={() => setMenuAbierto(prev => !prev)}
+        >
+        <span></span><span></span><span></span>
         </div>
-      </nav>
+        </nav>
 
       <section className="hero">
         <video

@@ -121,7 +121,8 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '💰 [Rango de Precio] (solo si existe)',
     '---',
     '- NUNCA pongas "No disponible" — simplemente omití el campo si no existe',
-    '- Al final, si hay más negocios disponibles que no mostraste, agregá exactamente: [VER_MAS_DISPONIBLE]',
+    '- Si mostraste menos negocios de los disponibles en la lista, SIEMPRE agregá exactamente al final: [VER_MAS_DISPONIBLE]',
+    '- Si ya mostraste TODOS los negocios de la lista y no quedan más, entonces decí que no hay más opciones',
     '- Respondé siempre en español',
   ].join('\n');
 
