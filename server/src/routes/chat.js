@@ -63,7 +63,7 @@ router.post('/', async (req, res) => {
     const esPrimerMensaje = !session.senales_extraidas;
 
     // Detectar si el usuario está pidiendo más opciones
-    const pideMas = /más opciones|otras opciones|más lugares|ver más|dame más|otras alternativas|más resultados/i.test(message);
+    const pideMas = /m[aá]s opciones|otras opciones|m[aá]s lugares|ver m[aá]s|dame m[aá]s|otras alternativas|m[aá]s resultados|m[aá]s|otros lugares|otras opciones|seguir viendo/i.test(message);
 
     if (pideMas && session.senales_extraidas) {
       // Usar señales guardadas de la sesión original
