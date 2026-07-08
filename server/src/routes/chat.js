@@ -147,6 +147,7 @@ router.post('/', async (req, res) => {
       }
     }
 
+    console.log('Negocios con distancias:', negocios.slice(0, 3).map(b => ({ nombre: b.nombre, distancia_km: b.distancia_km })));
     // ── Generar respuesta con OpenAI ──────────────────────────────────────────
     const { reply, hasMore } = await generarRespuesta(
       message,
