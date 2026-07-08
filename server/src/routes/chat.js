@@ -102,10 +102,26 @@ router.post('/', async (req, res) => {
     }
 
     // ── Buscar negocios relevantes por embedding semántico ────────────────────
-    const consultaEmbedding = senales.intencion || message;
-    let todosNegocios = await buscarPorEmbedding(consultaEmbedding, 20);
+     const consultaEmbedding = senales.intencion || message;
+    let todosNegocios = await buscarPorEmbedding(consultaEmbedding, 30);
     let negocios = todosNegocios.filter(b => parseFloat(b.similitud) >= 0.35);
-    if (negocios.length < 2) negocios = todosNegocios.slice(0, 5);
+    if (negocios.length < 2) negocios = todosNegocios.slice(0, 10);
+
+    // Si el usuario pide más opciones, excluir negocios ya mencionados en el historial
+    if (pideMas && historial.length > 0) {
+      const historialTexto = historial
+        .filter(m => m.role === 'assistant')
+        .map(m => m.content)
+        .join(' ')
+        .toLowerCase();
+
+      const negociosNuevos = negocios.filter(b =>
+        !historialTexto.includes(b.nombre.toLowerCase())
+      );
+
+      // Solo usar los nuevos si hay suficientes, sino mostrar todos
+      if (negociosNuevos.length >= 2) negocios = negociosNuevos;
+    }
 
     // Filtrar por precio si fue detectado
     if (senales.precio) {

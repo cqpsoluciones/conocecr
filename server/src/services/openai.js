@@ -122,7 +122,8 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '---',
     '- NUNCA pongas "No disponible" — simplemente omití el campo si no existe',
     '- Si mostraste menos negocios de los disponibles en la lista, SIEMPRE agregá exactamente al final: [VER_MAS_DISPONIBLE]',
-    '- Si ya mostraste TODOS los negocios de la lista y no quedan más, entonces decí que no hay más opciones',
+    '- Si el usuario pide más opciones, SIEMPRE mostrá negocios diferentes a los que ya mostraste anteriormente en la conversación',
+    '- Si ya mostraste TODOS los negocios de la lista y no quedan más, entonces decí honestamente que no hay más opciones disponibles',
     '- Respondé siempre en español',
   ].join('\n');
 
