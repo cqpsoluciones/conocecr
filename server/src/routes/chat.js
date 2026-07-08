@@ -58,8 +58,7 @@ router.post('/', async (req, res) => {
     const historial = historialResult.rows.reverse();
 
     // ── Determinar señales a usar ─────────────────────────────────────────────
-   // ── Determinar señales a usar ─────────────────────────────────────────────
-    let senales;
+   
     const esPrimerMensaje = !session.senales_extraidas;
 
     // Detectar si el usuario está pidiendo más opciones
@@ -101,6 +100,8 @@ router.post('/', async (req, res) => {
       }
     }
 
+
+    console.log('Coordenadas recibidas:', { userLat, userLng, sessionLat: session.user_lat, sessionLng: session.user_lng });
     // ── Buscar negocios relevantes por embedding semántico ────────────────────
      const consultaEmbedding = senales.intencion || message;
     let todosNegocios = await buscarPorEmbedding(consultaEmbedding, 30);
