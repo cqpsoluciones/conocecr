@@ -57,37 +57,45 @@ export default function Chat() {
     )
   }
 
-  const tryGeoOnDemand = (msg) => {
-    if (geoStatus === 'granted' || geoStatus === 'denied') return
-    if (!navigator.geolocation) return
-    const lower = msg.toLowerCase()
-    if (!PROXIMITY_KEYWORDS.some(k => lower.includes(k))) return
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude)
-        setUserLng(pos.coords.longitude)
-        setGeoStatus('granted')
-      },
-      () => setGeoStatus('unavailable'),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
-    )
-  }
+  
 
   const send = async (msg) => {
     msg = (msg || input).trim()
     if (!msg || busy) return
 
-    tryGeoOnDemand(msg)
     setShowWelcome(false)
     setMessages(prev => [...prev, { role: 'user', content: msg }])
     setInput('')
     setBusy(true)
 
+    // Si la geo está pendiente, esperamos hasta 3 segundos antes de enviar
+    let lat = userLat
+    let lng = userLng
+
+    if (geoStatus === 'idle' && navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 3000,
+            maximumAge: 60000
+          })
+        })
+        lat = pos.coords.latitude
+        lng = pos.coords.longitude
+        setUserLat(lat)
+        setUserLng(lng)
+        setGeoStatus('granted')
+      } catch {
+        // Si falla o tarda más de 3s, seguimos sin coordenadas
+      }
+    }
+
     try {
       const payload = { message: msg, sessionId: SID }
-      if (userLat !== null && userLng !== null) {
-        payload.userLat = userLat
-        payload.userLng = userLng
+      if (lat !== null && lng !== null) {
+        payload.userLat = lat
+        payload.userLng = lng
       }
       const { data } = await axios.post(API_URL + '/chat', payload)
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])

@@ -58,33 +58,47 @@ router.post('/', async (req, res) => {
     const historial = historialResult.rows.reverse();
 
     // ── Determinar señales a usar ─────────────────────────────────────────────
+   // ── Determinar señales a usar ─────────────────────────────────────────────
     let senales;
     const esPrimerMensaje = !session.senales_extraidas;
 
-    // Siempre extraer señales frescas para mantener contexto
-    senales = await extraerSenales(message);
-    console.log('Señales extraídas:', senales);
+    // Detectar si el usuario está pidiendo más opciones
+    const pideMas = /más opciones|otras opciones|más lugares|ver más|dame más|otras alternativas|más resultados/i.test(message);
 
-    // En el primer mensaje guardar señales base en la sesión
-    if (esPrimerMensaje) {
-      await pool.query(
-        `UPDATE chat_sessions SET
-          vibes_detectadas = $1,
-          categoria_detectada = $2,
-          precio_detectado = $3,
-          necesita_cercania = $4,
-          intencion = $5,
-          senales_extraidas = true
-         WHERE id = $6`,
-        [
-          senales.vibes?.join(', ') || null,
-          senales.categoria || null,
-          senales.precio || null,
-          senales.necesita_cercania || false,
-          senales.intencion || null,
-          sessionId
-        ]
-      );
+    if (pideMas && session.senales_extraidas) {
+      // Usar señales guardadas de la sesión original
+      senales = {
+        vibes: session.vibes_detectadas ? session.vibes_detectadas.split(', ') : [],
+        categoria: session.categoria_detectada,
+        precio: session.precio_detectado,
+        necesita_cercania: session.necesita_cercania,
+        intencion: session.intencion
+      };
+    } else {
+      // Extraer señales frescas del mensaje actual
+      senales = await extraerSenales(message);
+      console.log('Señales extraídas:', senales);
+
+      if (esPrimerMensaje) {
+        await pool.query(
+          `UPDATE chat_sessions SET
+            vibes_detectadas = $1,
+            categoria_detectada = $2,
+            precio_detectado = $3,
+            necesita_cercania = $4,
+            intencion = $5,
+            senales_extraidas = true
+           WHERE id = $6`,
+          [
+            senales.vibes?.join(', ') || null,
+            senales.categoria || null,
+            senales.precio || null,
+            senales.necesita_cercania || false,
+            senales.intencion || null,
+            sessionId
+          ]
+        );
+      }
     }
 
     // ── Buscar negocios relevantes por embedding semántico ────────────────────
