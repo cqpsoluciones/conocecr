@@ -6,6 +6,8 @@ import AdminRevisar from './AdminRevisar'
 import AdminPanel from './AdminPanel'
 import AdminEditarNegocio from './AdminEditarNegocio'
 import AdminChats from './AdminChats'
+import CrearCuenta from './CrearCuenta'
+import Login from './Login'
 
 export default function App() {
   return (
@@ -18,6 +20,8 @@ export default function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/admin/negocio/:id" element={<AdminEditarNegocio />} />
         <Route path="/admin/chats" element={<AdminChats />} />
+        <Route path="/crear-cuenta" element={<CrearCuenta />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </BrowserRouter>
   )

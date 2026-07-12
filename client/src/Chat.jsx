@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { obtenerUsuario } from './session'
 
 const API_URL = import.meta.env.VITE_API_URL
 const SID = Math.random().toString(36).slice(2) + Date.now().toString(36)
@@ -31,6 +32,7 @@ export default function Chat() {
   const [geoStatus, setGeoStatus] = useState('idle')
   const [userLat, setUserLat] = useState(null)
   const [userLng, setUserLng] = useState(null)
+  const [usuario] = useState(obtenerUsuario())
   const msgsRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -97,6 +99,10 @@ export default function Chat() {
         payload.userLat = lat
         payload.userLng = lng
       }
+      if (usuario) {
+        payload.userId = usuario.id
+        payload.userNombre = usuario.nombre
+      }
       const { data } = await axios.post(API_URL + '/chat', payload)
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
     } catch {
@@ -156,7 +162,11 @@ export default function Chat() {
                 style={{ display: 'block', imageRendering: 'auto' }}
               />
             </div>
-            <h2>¿Qué querés conocer hoy?</h2>
+            <h2>
+              {usuario
+                ? `¡Hola, ${usuario.nombre.split(' ')[0]}! ¿Qué querés conocer hoy?`
+                : '¿Qué querés conocer hoy?'}
+            </h2>
             <p>Preguntame por negocios, restaurantes, servicios o lugares en Santo Domingo de Heredia.</p>
             <div className="chips">
               <div className="chip" onClick={() => send('Quiero comer algo rico')}>🍽 Quiero comer</div>

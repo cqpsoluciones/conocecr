@@ -371,3 +371,8 @@ footer {
     gap: 20px;
   }
 }
+
+.nav-user {
+  color: #7ecfa4;
+  font-size: 14px;
+}

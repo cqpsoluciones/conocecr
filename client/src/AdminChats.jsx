@@ -70,25 +70,11 @@ export default function AdminChats() {
         </button>
       </nav>
 
-      <div style={{ display: 'flex', height: 'calc(100vh - 57px)' }}>
+      <div className={`admchats-layout ${chatActivo ? 'detalle-abierto' : ''}`}>
 
         {/* Lista de sesiones */}
-        <div style={{
-          width: '340px',
-          flexShrink: 0,
-          borderRight: '1px solid rgba(255,255,255,0.08)',
-          overflowY: 'auto',
-          padding: '16px'
-        }}>
-          <h2 style={{
-            fontFamily: "'Anton', sans-serif",
-            fontSize: '22px',
-            color: '#fff',
-            marginBottom: '16px',
-            fontWeight: 400
-          }}>
-            Conversaciones
-          </h2>
+        <div className="admchats-lista">
+          <h2 className="admchats-titulo">Conversaciones</h2>
 
           {cargando ? (
             <p className="admin-loading">Cargando...</p>
@@ -99,20 +85,12 @@ export default function AdminChats() {
               <div
                 key={c.id}
                 onClick={() => verChat(c.id)}
-                style={{
-                  background: chatActivo?.id === c.id ? '#1a1a1e' : '#111114',
-                  border: `1px solid ${chatActivo?.id === c.id ? 'rgba(126,207,164,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  marginBottom: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
+                className={`admchats-item ${chatActivo?.id === c.id ? 'activo' : ''}`}
               >
-                <div style={{ fontSize: '13px', color: '#f0f0f0', marginBottom: '4px', fontWeight: 500 }}>
+                <div className="admchats-item-titulo">
                   {c.intencion || 'Sin intención detectada'}
                 </div>
-                <div style={{ fontSize: '11px', color: '#6b6b75' }}>
+                <div className="admchats-item-meta">
                   {c.total_mensajes} mensajes · {new Date(c.created_at).toLocaleDateString('es-CR', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                   })}
@@ -123,50 +101,35 @@ export default function AdminChats() {
         </div>
 
         {/* Vista de mensajes */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+        <div className="admchats-detalle">
           {!chatActivo ? (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              color: '#6b6b75',
-              fontSize: '14px'
-            }}>
+            <div className="admchats-vacio">
               Seleccioná una conversación para verla
             </div>
           ) : (
             <>
-              <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '6px' }}>
-                  {chatActivo.intencion || 'Sin intención'}
-                </h3>
-                <div style={{ fontSize: '12px', color: '#6b6b75' }}>
+              <button
+                className="admchats-volver"
+                onClick={() => setChatActivo(null)}
+              >
+                ← Conversaciones
+              </button>
+
+              <div className="admchats-detalle-header">
+                <h3>{chatActivo.intencion || 'Sin intención'}</h3>
+                <div className="admchats-detalle-meta">
                   {new Date(chatActivo.created_at).toLocaleDateString('es-CR', { dateStyle: 'long' })}
                   {chatActivo.user_lat && ` · Ubicación: ${parseFloat(chatActivo.user_lat).toFixed(4)}, ${parseFloat(chatActivo.user_lng).toFixed(4)}`}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="admchats-mensajes">
                 {mensajes.map((m, i) => (
                   <div
                     key={i}
-                    style={{
-                      display: 'flex',
-                      justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start'
-                    }}
+                    className={`admchats-fila ${m.role === 'user' ? 'usuario' : 'asistente'}`}
                   >
-                    <div style={{
-                      maxWidth: '75%',
-                      background: m.role === 'user' ? '#1e1e22' : 'transparent',
-                      border: m.role === 'user' ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                      borderRadius: '14px',
-                      padding: m.role === 'user' ? '10px 14px' : '4px 2px',
-                      fontSize: '13px',
-                      color: '#f0f0f0',
-                      lineHeight: 1.6,
-                      whiteSpace: 'pre-wrap'
-                    }}>
+                    <div className="admchats-burbuja">
                       {m.content}
                     </div>
                   </div>

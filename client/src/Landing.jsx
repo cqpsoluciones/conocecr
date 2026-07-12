@@ -1,9 +1,18 @@
 import './App.css'
 import { useState } from 'react'
+import { obtenerUsuario, cerrarSesion } from './session'
 
 
 export default function Landing() {
     const [menuAbierto, setMenuAbierto] = useState(false)
+    const [usuario, setUsuario] = useState(obtenerUsuario())
+
+    const handleCerrarSesion = () => {
+      cerrarSesion()
+      setUsuario(null)
+      setMenuAbierto(false)
+    }
+
   return (
     <>
       <nav id="navbar">
@@ -24,6 +33,18 @@ export default function Landing() {
         <li><a href="https://www.crconoce.com/category/all-products" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Directorio</a></li>
         <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
         <li><a href="/registro" className="nav-cta" onClick={() => setMenuAbierto(false)}>Agregar negocio</a></li>
+        {!usuario ? (
+          <li><a href="/login" className="nav-cta" onClick={() => setMenuAbierto(false)}>Iniciar sesión</a></li>
+        ) : (
+          <>
+            <li><span className="nav-user">Hola, {usuario.nombre.split(' ')[0]} 👋</span></li>
+            <li>
+              <a href="#" onClick={e => { e.preventDefault(); handleCerrarSesion() }}>
+                Cerrar sesión
+              </a>
+            </li>
+          </>
+        )}
         </ul>
         <div
         className="nav-toggle"
@@ -94,7 +115,7 @@ export default function Landing() {
         <div className="footer-brand">Conoce CR</div>
         <ul className="footer-links">
           <li><a href="#contacto">Contacto</a></li>
-          <li><a href="/chat">Agregar negocio</a></li>
+          <li><a href="/registro">Agregar negocio</a></li>
         </ul>
         <div className="footer-copy">© 2026 Conoce CR · Santo Domingo de Heredia</div>
       </footer>
