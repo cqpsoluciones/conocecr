@@ -62,7 +62,7 @@ const extraerSenales = async (mensaje) => {
   }
 };
 
-const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion) => {
+const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion, userNombre) => {
   const listaNegocios = negocios.map(function(b) {
     const dist = b.distancia_km ? b.distancia_km + ' km' : null;
     return '- ' + b.nombre + ' (' + b.categoria + ')' +
@@ -76,7 +76,7 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
       'Horario: ' + (b.horario || 'No disponible') + '.';
   }).join('\n');
 
-  const sinNegocios = 'No hay negocios que coincidan con esta busqueda especifica.';
+  const primerNombre = userNombre ? userNombre.split(' ')[0] : null;
 
   const systemPrompt = [
 
@@ -86,6 +86,9 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '',
     'PERSONALIDAD:',
     '- Hablá siempre de forma cálida, cercana y entusiasta',
+    primerNombre
+      ? '- El usuario se llama ' + primerNombre + '. Usá su nombre de forma natural y ocasional (por ejemplo al saludar o al cerrar una recomendación), NUNCA en cada mensaje ni de forma repetitiva — eso se siente forzado'
+      : '',
     '- Nunca menciones términos técnicos como "base de datos", "registros", "herramientas" o "sistema"',
     '- Si no tenés información sobre algo, decilo naturalmente: "Hmm, no tengo información sobre ese lugar por ahora"',
     '- NUNCA inventes datos ni atribuyas productos o servicios que no estén explícitamente en los datos del negocio',

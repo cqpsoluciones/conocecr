@@ -20,7 +20,7 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
-    const { message, sessionId, userLat, userLng } = req.body;
+    const { message, sessionId, userLat, userLng, userNombre } = req.body;
 
     if (!message?.trim()) {
       return res.status(400).json({ error: 'Mensaje requerido' });
@@ -60,6 +60,8 @@ router.post('/', async (req, res) => {
     // ── Determinar señales a usar ─────────────────────────────────────────────
    
     const esPrimerMensaje = !session.senales_extraidas;
+
+     let senales;
 
     // Detectar si el usuario está pidiendo más opciones
     const pideMas = /m[aá]s opciones|otras opciones|m[aá]s lugares|ver m[aá]s|dame m[aá]s|otras alternativas|m[aá]s resultados|m[aá]s|otros lugares|otras opciones|seguir viendo/i.test(message);
@@ -155,7 +157,8 @@ router.post('/', async (req, res) => {
       historial,
       userLat || session.user_lat,
       userLng || session.user_lng,
-      senales.intencion
+      senales.intencion,
+      userNombre
     );
 
     // ── Guardar mensajes en historial ─────────────────────────────────────────
