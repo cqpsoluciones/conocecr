@@ -145,7 +145,7 @@ const enviarSolicitudNegocio = async (datos) => {
   `;
 
   await resend.emails.send({
-    from: 'Conoce CR <onboarding@resend.dev>',
+    from: process.env.RESEND_FROM,
     to: process.env.GMAIL_USER,
     subject: `Nueva solicitud: ${nombre}`,
     html
