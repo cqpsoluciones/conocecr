@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import AdminLogin from './AdminLogin'
@@ -14,6 +14,9 @@ export default function AdminEditarNegocio() {
   const [negocio, setNegocio] = useState(null)
   const [estado, setEstado] = useState('loading')
   const [error, setError] = useState('')
+  const [subiendoMenu, setSubiendoMenu] = useState(false)
+  const [avisoMenu, setAvisoMenu] = useState('')
+  const fileRef = useRef(null)
 
   useEffect(() => {
     if (token) cargar()
@@ -49,6 +52,43 @@ export default function AdminEditarNegocio() {
     } catch (e) {
       setError('Error al guardar los cambios')
       setEstado('ready')
+    }
+  }
+
+  const subirMenu = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setSubiendoMenu(true)
+    setAvisoMenu('')
+    setError('')
+
+    const formData = new FormData()
+    formData.append('menu', file)
+
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/admin/negocios/${id}/menu`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setNegocio(prev => ({
+        ...prev,
+        menu_url: data.menu_url,
+        menu_texto: data.menu_texto
+      }))
+      setAvisoMenu('Menú leído correctamente. Revisá el texto y corregí lo que haga falta.')
+    } catch (err) {
+      const resp = err.response?.data
+      if (resp && resp.menu_url) {
+        setNegocio(prev => ({ ...prev, menu_url: resp.menu_url }))
+        setAvisoMenu(resp.error)
+      } else {
+        setError((resp && resp.error) || 'Error al subir el menú')
+      }
+    } finally {
+      setSubiendoMenu(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
@@ -126,6 +166,59 @@ export default function AdminEditarNegocio() {
             <div className="reg-field">
               <label className="reg-label">VIBES (separadas por coma)</label>
               <input className="reg-input" value={negocio.vibes || ''} onChange={e => set('vibes', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="reg-section">
+            <div className="reg-section-title">MENÚ</div>
+
+            <div className="reg-field">
+              <label className="reg-label">SUBIR MENÚ (IMAGEN O PDF)</label>
+              <div className="reg-file-wrap">
+                <input
+                  ref={fileRef}
+                  id="menu-file"
+                  className="reg-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,application/pdf"
+                  onChange={subirMenu}
+                  disabled={subiendoMenu}
+                />
+                <label className="reg-file-label" htmlFor="menu-file">
+                  {subiendoMenu ? 'Leyendo el menú con IA...' : 'Elegir archivo (PNG, JPG o PDF)'}
+                </label>
+              </div>
+              <span className="reg-hint">
+                La IA lee el menú y llena el texto de abajo automáticamente. Puede tardar unos segundos.
+              </span>
+            </div>
+
+            {avisoMenu && (
+              <div className="reg-field" style={{ color: '#7ecfa4', fontSize: '13px' }}>
+                {avisoMenu}
+              </div>
+            )}
+
+            {negocio.menu_url && (
+              <div className="reg-field">
+                <a href={negocio.menu_url} target="_blank" rel="noopener" style={{ color: '#7ecfa4', fontSize: '13px' }}>
+                  Ver el archivo del menú subido
+                </a>
+              </div>
+            )}
+
+            <div className="reg-field">
+              <label className="reg-label">TEXTO DEL MENÚ (lo que lee la IA al recomendar)</label>
+              <textarea
+                className="reg-textarea"
+                rows={12}
+                value={negocio.menu_texto || ''}
+                onChange={e => set('menu_texto', e.target.value)}
+                placeholder="Subí un archivo arriba para llenarlo automáticamente, o escribí el menú a mano."
+              />
+              <span className="reg-hint">
+                Revisá que los productos y precios estén correctos. Este texto es lo que le permite al modelo saber qué vende el negocio.
+              </span>
             </div>
           </div>
 
