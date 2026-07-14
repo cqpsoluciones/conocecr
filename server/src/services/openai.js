@@ -76,7 +76,7 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
       'Sitio web: ' + (b.sitio_web || 'No disponible') + '. ' +
       'Precio: ' + (b.rango_precio || 'No definido') + '. ' +
       'Horario: ' + (b.horario || 'No disponible') + '.' +
-      (b.menu_texto ? '\n  MENÚ Y PRODUCTOS QUE VENDE:\n' + b.menu_texto.slice(0, 1500) : '');
+      (b.menu_texto ? '\n  MENÚ Y PRODUCTOS QUE VENDE:\n' + b.menu_texto.slice(0, 4000) : '');
   }).join('\n');
 
   const primerNombre = userNombre ? userNombre.split(' ')[0] : null;
