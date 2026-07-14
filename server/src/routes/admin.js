@@ -8,7 +8,7 @@ const { extraerTextoDeMenu } = require('../services/menu');
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
     if (tiposPermitidos.includes(file.mimetype)) {
@@ -179,6 +179,9 @@ router.post('/negocios/:id/menu', verificarToken, upload.single('menu'), async (
 
   } catch (err) {
     console.error('Error al procesar el menú:', err);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'El archivo es muy pesado. El máximo es 25 MB.' });
+    }
     res.status(500).json({ error: 'Error al procesar el menú' });
   }
 });

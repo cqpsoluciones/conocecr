@@ -8,7 +8,7 @@ const { verificarToken } = require('../middleware/auth');
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // máximo 10MB
+  limits: { fileSize: 25 * 1024 * 1024 }, // máximo 25MB
   fileFilter: (req, file, cb) => {
     const tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
     if (tiposPermitidos.includes(file.mimetype)) {
