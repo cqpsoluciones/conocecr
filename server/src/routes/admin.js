@@ -1,7 +1,61 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const pool = require('../db');
 const { verificarToken } = require('../middleware/auth');
+const { subirMenu, obtenerImagenesDelMenu } = require('../services/cloudinary');
+const { extraerTextoDeMenu } = require('../services/menu');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (tiposPermitidos.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos PNG, JPG o PDF'));
+    }
+  }
+});
+
+// Genera el embedding de un negocio incluyendo su menú (fuente única de verdad)
+const regenerarEmbedding = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT nombre, categoria, descripcion, descripcion_emocional,
+            vibes, direccion, rango_precio, horario, menu_texto
+     FROM businesses WHERE id = $1`,
+    [id]
+  );
+  if (rows.length === 0) return;
+  const b = rows[0];
+
+  const texto = [
+    `Nombre: ${b.nombre}`,
+    `Categoría: ${b.categoria}`,
+    `Descripción: ${b.descripcion || ''}`,
+    `Descripción emocional: ${b.descripcion_emocional || ''}`,
+    `Vibes: ${b.vibes || ''}`,
+    `Dirección: ${b.direccion || ''}`,
+    `Precio: ${b.rango_precio || ''}`,
+    `Horario: ${b.horario || ''}`,
+    b.menu_texto ? `Menú y productos que ofrece:\n${b.menu_texto}` : ''
+  ].filter(Boolean).join('\n');
+
+  const OpenAI = require('openai');
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const embeddingRes = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: texto
+  });
+
+  const embedding = embeddingRes.data[0].embedding;
+  await pool.query(
+    'UPDATE businesses SET embedding = $1 WHERE id = $2',
+    [`[${embedding.join(',')}]`, id]
+  );
+};
 
 // GET /api/admin/negocios — listar todos los negocios (con búsqueda opcional)
 router.get('/negocios', verificarToken, async (req, res) => {
@@ -50,53 +104,82 @@ router.put('/negocios/:id', verificarToken, async (req, res) => {
     const {
       nombre, categoria, descripcion, descripcion_emocional,
       vibes, direccion, horario, whatsapp, instagram,
-      facebook, sitio_web, rango_precio, lat, lng, active
+      facebook, sitio_web, rango_precio, lat, lng, active,
+      menu_texto
     } = req.body;
 
     await pool.query(
       `UPDATE businesses SET
         nombre = $1, categoria = $2, descripcion = $3, descripcion_emocional = $4,
         vibes = $5, direccion = $6, horario = $7, whatsapp = $8, instagram = $9,
-        facebook = $10, sitio_web = $11, rango_precio = $12, lat = $13, lng = $14, active = $15
-      WHERE id = $16`,
+        facebook = $10, sitio_web = $11, rango_precio = $12, lat = $13, lng = $14,
+        active = $15, menu_texto = $16
+      WHERE id = $17`,
       [
         nombre, categoria, descripcion, descripcion_emocional,
         Array.isArray(vibes) ? vibes.join(', ') : vibes,
         direccion, horario, whatsapp, instagram,
-        facebook, sitio_web, rango_precio, lat, lng, active, id
+        facebook, sitio_web, rango_precio, lat, lng, active,
+        menu_texto || null, id
       ]
     );
 
-    // Regenerar embedding con los datos actualizados
-    const OpenAI = require('openai');
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    const texto = [
-      `Nombre: ${nombre}`,
-      `Categoría: ${categoria}`,
-      `Descripción: ${descripcion}`,
-      `Descripción emocional: ${descripcion_emocional}`,
-      `Vibes: ${Array.isArray(vibes) ? vibes.join(', ') : vibes}`,
-      `Dirección: ${direccion}`,
-      `Precio: ${rango_precio || ''}`,
-      `Horario: ${horario || ''}`
-    ].join('\n');
-
-    const embeddingRes = await openai.embeddings.create({
-      model: 'text-embedding-3-small',
-      input: texto
-    });
-
-    const embedding = embeddingRes.data[0].embedding;
-    await pool.query(
-      'UPDATE businesses SET embedding = $1 WHERE id = $2',
-      [`[${embedding.join(',')}]`, id]
-    );
+    await regenerarEmbedding(id);
 
     res.json({ ok: true });
   } catch (err) {
     console.error('Error al editar negocio:', err);
     res.status(500).json({ error: 'Error al editar el negocio' });
+  }
+});
+
+// POST /api/admin/negocios/:id/menu — subir menú (imagen o PDF) y extraer su texto con IA
+router.post('/negocios/:id/menu', verificarToken, upload.single('menu'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió ningún archivo' });
+    }
+
+    const { rows } = await pool.query('SELECT nombre FROM businesses WHERE id = $1', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Negocio no encontrado' });
+    }
+    const nombreNegocio = rows[0].nombre;
+
+    // 1. Subir a Cloudinary
+    const menuUrl = await subirMenu(req.file.buffer, nombreNegocio);
+
+    // 2. Obtener las imágenes legibles (si es PDF, una por página)
+    const imagenes = await obtenerImagenesDelMenu(menuUrl, req.file.buffer);
+
+    // 3. Extraer el texto con visión de gpt-4o
+    let menuTexto;
+    try {
+      menuTexto = await extraerTextoDeMenu(imagenes);
+    } catch (e) {
+      // Guardamos la imagen igual: el admin puede escribir el texto a mano
+      await pool.query('UPDATE businesses SET menu_url = $1 WHERE id = $2', [menuUrl, id]);
+      return res.status(422).json({
+        error: 'El archivo se subió, pero no se pudo leer el menú automáticamente. Podés escribir el texto a mano.',
+        menu_url: menuUrl,
+        menu_texto: ''
+      });
+    }
+
+    // 4. Guardar ambos y regenerar embedding
+    await pool.query(
+      'UPDATE businesses SET menu_url = $1, menu_texto = $2 WHERE id = $3',
+      [menuUrl, menuTexto, id]
+    );
+    await regenerarEmbedding(id);
+
+    res.json({ ok: true, menu_url: menuUrl, menu_texto: menuTexto, paginas: imagenes.length });
+
+  } catch (err) {
+    console.error('Error al procesar el menú:', err);
+    res.status(500).json({ error: 'Error al procesar el menú' });
   }
 });
 
