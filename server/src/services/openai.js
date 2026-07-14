@@ -75,7 +75,8 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
       'Instagram: ' + (b.instagram || 'No disponible') + '. ' +
       'Sitio web: ' + (b.sitio_web || 'No disponible') + '. ' +
       'Precio: ' + (b.rango_precio || 'No definido') + '. ' +
-      'Horario: ' + (b.horario || 'No disponible') + '.';
+      'Horario: ' + (b.horario || 'No disponible') + '.' +
+      (b.menu_texto ? '\n  MENÚ Y PRODUCTOS QUE VENDE:\n' + b.menu_texto.slice(0, 1500) : '');
   }).join('\n');
 
   const primerNombre = userNombre ? userNombre.split(' ')[0] : null;
@@ -180,7 +181,7 @@ const buscarPorEmbedding = async (consulta, limite = 20) => {
   const { rows } = await pool.query(
     `SELECT id, nombre, categoria, descripcion, descripcion_emocional,
             vibes, direccion, whatsapp, instagram, facebook,
-            sitio_web, rango_precio, horario, lat, lng,
+            sitio_web, rango_precio, horario, lat, lng, menu_texto,
             1 - (embedding <=> $1::vector) AS similitud
      FROM businesses
      WHERE active = true AND embedding IS NOT NULL
