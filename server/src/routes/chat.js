@@ -43,6 +43,8 @@ const obtenerHistorialUsuario = async (usuarioId, sessionIdActual) => {
   }).join('\n');
 };
 
+console.log('Historial del usuario:', historialUsuario);
+
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
