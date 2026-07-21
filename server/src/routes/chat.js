@@ -20,7 +20,7 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
-    const { message, sessionId, userLat, userLng, userNombre } = req.body;
+    const { message, sessionId, userLat, userLng, userNombre, userId } = req.body;
 
     if (!message?.trim()) {
       return res.status(400).json({ error: 'Mensaje requerido' });
@@ -39,13 +39,20 @@ router.post('/', async (req, res) => {
     let session;
     if (sessionResult.rows.length === 0) {
       const newSession = await pool.query(
-        `INSERT INTO chat_sessions (id, user_lat, user_lng)
-         VALUES ($1, $2, $3) RETURNING *`,
-        [sessionId, userLat || null, userLng || null]
+        `INSERT INTO chat_sessions (id, user_lat, user_lng, usuario_id)
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [sessionId, userLat || null, userLng || null, userId || null]
       );
       session = newSession.rows[0];
     } else {
       session = sessionResult.rows[0];
+      if (userId && !session.usuario_id) {
+        await pool.query(
+          'UPDATE chat_sessions SET usuario_id = $1 WHERE id = $2',
+          [userId, sessionId]
+        );
+        session.usuario_id = userId;
+      }
     }
 
     // ── Obtener historial reciente (últimos 10 mensajes) ──────────────────────
