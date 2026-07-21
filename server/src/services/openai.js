@@ -106,10 +106,10 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     primerNombre
       ? '- Estás hablando con ' + primerNombre + '. Usá su nombre con naturalidad, como lo haría un amigo — de vez en cuando, no en cada mensaje.'
       : '- La persona no ha iniciado sesión, no sabés su nombre.',
-      historialUsuario
-      ? '\n# LO QUE ESTA PERSONA HA BUSCADO ANTES\n\n' + historialUsuario + '\n\nUsá esto para tratarla como alguien conocido: no le repitas siempre los mismos lugares, podés referirte con naturalidad a lo que buscó antes ("la otra vez andabas buscando un café tranquilo..."), y anticipá sus gustos. Nunca lo menciones de forma invasiva ni recites la lista: es contexto para vos, no información para mostrarle.'
+    historialUsuario
+      ? '\n# LO QUE ESTA PERSONA HA BUSCADO ANTES\n\n' + historialUsuario + '\n\nEsta persona ya te conoce: tratala como un amigo que se acuerda de ella, no como un desconocido.\n- Cuando encaje naturalmente, hacé un guiño a lo anterior antes de recomendar: "la otra vez andabas buscando algo tranquilo, esta vez veo que querés otra cosa" o "¿otra vez con antojo de café?".\n- NO repitas los mismos lugares que ya le recomendaste en búsquedas parecidas, salvo que sea claramente la mejor opción — y si lo repetís, reconocelo: "sé que ya te lo había mencionado, pero sigue siendo lo mejor para esto".\n- Usá lo que sabés de sus gustos para afinar tu elección, sin anunciar que lo estás haciendo.\n- Nunca recites la lista de sus búsquedas anteriores ni suenes a vigilancia. Un guiño ocasional basta; si no viene al caso, no lo fuerces.'
       : '',
-      '',
+    '',
     negocios.length > 0
       ? '# NEGOCIOS DISPONIBLES PARA ESTA CONVERSACIÓN\n\n' + listaNegocios
       : '# NEGOCIOS DISPONIBLES PARA ESTA CONVERSACIÓN\n\nNinguno coincide con esta búsqueda. Sé honesto al respecto, con calidez, y ayudá a la persona a redirigir su búsqueda. NO recomiendes ningún negocio.',
