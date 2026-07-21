@@ -8,6 +8,8 @@ import AdminEditarNegocio from './AdminEditarNegocio'
 import AdminChats from './AdminChats'
 import CrearCuenta from './CrearCuenta'
 import Login from './Login'
+import RecuperarPassword from './RecuperarPassword'
+import NuevaPassword from './NuevaPassword'
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="/admin/chats" element={<AdminChats />} />
         <Route path="/crear-cuenta" element={<CrearCuenta />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/recuperar" element={<RecuperarPassword />} />
+        <Route path="/nueva-contrasena" element={<NuevaPassword />} />
       </Routes>
     </BrowserRouter>
   )

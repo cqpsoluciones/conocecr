@@ -96,6 +96,10 @@ export default function Login() {
           </button>
 
           <p className="reg-footer-note">
+            <Link to="/recuperar" className="usr-link">¿Olvidaste tu contraseña?</Link>
+          </p>
+
+          <p className="reg-footer-note">
             ¿No tenés cuenta? <Link to="/crear-cuenta" className="usr-link">Creá una gratis</Link>
           </p>
         </div>
