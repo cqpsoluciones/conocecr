@@ -186,4 +186,125 @@ router.get('/verificar', async (req, res) => {
   }
 });
 
+
+// ============================================
+// POST /api/usuarios/recuperar
+// Envía el correo con el enlace para restablecer.
+// ============================================
+router.post('/recuperar', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: 'Ingresá tu correo electrónico' });
+    }
+
+    const resultado = await pool.query(
+      'SELECT id, nombre, email FROM usuarios WHERE email = $1',
+      [email.toLowerCase().trim()]
+    );
+
+    // Respuesta genérica SIEMPRE: no revelamos si el correo existe o no
+    const respuestaGenerica = {
+      ok: true,
+      mensaje: 'Si existe una cuenta con ese correo, te enviamos un enlace para restablecer tu contraseña.'
+    };
+
+    if (resultado.rows.length === 0) {
+      return res.json(respuestaGenerica);
+    }
+
+    const usuario = resultado.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+
+    await pool.query(
+      `UPDATE usuarios
+       SET reset_token = $1, reset_expira = NOW() + INTERVAL '1 hour'
+       WHERE id = $2`,
+      [token, usuario.id]
+    );
+
+    const urlReset = `${process.env.FRONTEND_URL || 'https://conocecr.com'}/nueva-contrasena?token=${token}`;
+
+    resend.emails.send({
+      from: process.env.RESEND_FROM,
+      to: usuario.email,
+      subject: 'Restablecé tu contraseña de Conoce CR',
+      html: `
+        <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+          <h2>Hola ${usuario.nombre.split(' ')[0]},</h2>
+          <p>Recibimos una solicitud para restablecer tu contraseña en <strong>Conoce CR</strong>.</p>
+          <p style="margin: 24px 0;">
+            <a href="${urlReset}"
+               style="background: #1a1a2e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px;">
+              Crear nueva contraseña
+            </a>
+          </p>
+          <p style="color: #888; font-size: 13px;">Este enlace vence en 1 hora. Si no pediste esto, podés ignorar el correo: tu contraseña sigue siendo la misma.</p>
+        </div>
+      `
+    }).catch(err => console.error('Error enviando correo de recuperación:', err));
+
+    res.json(respuestaGenerica);
+
+  } catch (error) {
+    console.error('Error en recuperación de contraseña:', error);
+    res.status(500).json({ error: 'Error al procesar la solicitud' });
+  }
+});
+
+// ============================================
+// POST /api/usuarios/nueva-contrasena
+// Cambia la contraseña usando el token del correo.
+// ============================================
+router.post('/nueva-contrasena', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Faltan datos' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+    }
+
+    const resultado = await pool.query(
+      `SELECT id, nombre, email FROM usuarios
+       WHERE reset_token = $1 AND reset_expira > NOW()`,
+      [token]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(400).json({ error: 'El enlace venció o ya fue usado. Solicitá uno nuevo.' });
+    }
+
+    const usuario = resultado.rows[0];
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `UPDATE usuarios
+       SET password_hash = $1, reset_token = NULL, reset_expira = NULL
+       WHERE id = $2`,
+      [passwordHash, usuario.id]
+    );
+
+    // Iniciamos sesión de una vez: ya demostró tener acceso al correo
+    const tokenSesion = jwt.sign(
+      { userId: usuario.id, tipo: 'usuario' },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      token: tokenSesion,
+      usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email }
+    });
+
+  } catch (error) {
+    console.error('Error al cambiar contraseña:', error);
+    res.status(500).json({ error: 'Error al cambiar la contraseña' });
+  }
+});
+
+
 module.exports = router;
