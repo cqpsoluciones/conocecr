@@ -17,6 +17,32 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
   return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
 };
 
+
+// Trae un resumen de las conversaciones anteriores del usuario (últimas 5 sesiones)
+const obtenerHistorialUsuario = async (usuarioId, sessionIdActual) => {
+  if (!usuarioId) return null;
+
+  const { rows } = await pool.query(
+    `SELECT intencion, created_at
+     FROM chat_sessions
+     WHERE usuario_id = $1
+       AND id != $2
+       AND intencion IS NOT NULL
+     ORDER BY created_at DESC
+     LIMIT 5`,
+    [usuarioId, sessionIdActual]
+  );
+
+  if (rows.length === 0) return null;
+
+  return rows.map(r => {
+    const fecha = new Date(r.created_at).toLocaleDateString('es-CR', {
+      day: 'numeric', month: 'long'
+    });
+    return `- ${fecha}: ${r.intencion}`;
+  }).join('\n');
+};
+
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
   try {
@@ -185,6 +211,16 @@ router.post('/', async (req, res) => {
 
     console.log('Negocios enviados al modelo:', negocios.slice(0, 5).map(b => ({ nombre: b.nombre, distancia_km: b.distancia_km })));
 
+
+
+// Historial de conversaciones anteriores (solo si hay usuario logueado)
+    const historialUsuario = await obtenerHistorialUsuario(
+      session.usuario_id || userId,
+      sessionId
+    );
+
+
+
     // ── Generar respuesta con OpenAI ──────────────────────────────────────────
     const { reply, hasMore } = await generarRespuesta(
       message,
@@ -193,7 +229,8 @@ router.post('/', async (req, res) => {
       userLat || session.user_lat,
       userLng || session.user_lng,
       senales.intencion,
-      userNombre
+      userNombre,
+      historialUsuario
     );
 
     // ── Guardar mensajes en historial ─────────────────────────────────────────

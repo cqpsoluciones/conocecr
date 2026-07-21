@@ -62,7 +62,7 @@ const extraerSenales = async (mensaje) => {
   }
 };
 
-const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion, userNombre) => {
+const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion, userNombre, historialUsuario) => {
   const listaNegocios = negocios.map(function(b) {
     const dist = b.distancia_km ? b.distancia_km + ' km' : null;
     return '- ' + b.nombre + ' (' + b.categoria + ')' +
@@ -106,7 +106,10 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     primerNombre
       ? '- Estás hablando con ' + primerNombre + '. Usá su nombre con naturalidad, como lo haría un amigo — de vez en cuando, no en cada mensaje.'
       : '- La persona no ha iniciado sesión, no sabés su nombre.',
-    '',
+      historialUsuario
+      ? '\n# LO QUE ESTA PERSONA HA BUSCADO ANTES\n\n' + historialUsuario + '\n\nUsá esto para tratarla como alguien conocido: no le repitas siempre los mismos lugares, podés referirte con naturalidad a lo que buscó antes ("la otra vez andabas buscando un café tranquilo..."), y anticipá sus gustos. Nunca lo menciones de forma invasiva ni recites la lista: es contexto para vos, no información para mostrarle.'
+      : '',
+      '',
     negocios.length > 0
       ? '# NEGOCIOS DISPONIBLES PARA ESTA CONVERSACIÓN\n\n' + listaNegocios
       : '# NEGOCIOS DISPONIBLES PARA ESTA CONVERSACIÓN\n\nNinguno coincide con esta búsqueda. Sé honesto al respecto, con calidez, y ayudá a la persona a redirigir su búsqueda. NO recomiendes ningún negocio.',
