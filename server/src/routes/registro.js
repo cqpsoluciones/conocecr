@@ -141,24 +141,50 @@ router.post('/confirmar/:id', verificarToken, async (req, res) => {
       facebook, sitio_web, rango_precio, lat, lng
     } = req.body;
 
+    // Traer el menu_url de la solicitud original (no viene en el body editable)
+    const { rows: solicitudRows } = await pool.query(
+      'SELECT menu_url FROM solicitudes WHERE id = $1',
+      [id]
+    );
+    const menuUrl = solicitudRows[0]?.menu_url || null;
+
     // Insertar en businesses con los datos (posiblemente editados)
     const { rows: inserted } = await pool.query(
       `INSERT INTO businesses (
         nombre, categoria, descripcion, descripcion_emocional,
         vibes, direccion, horario, whatsapp, instagram,
-        facebook, sitio_web, rango_precio, lat, lng, active
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
+        facebook, sitio_web, rango_precio, lat, lng, active, menu_url
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true,$15)
       RETURNING id`,
       [
         nombre, categoria, descripcion, descripcion_emocional,
         Array.isArray(vibes) ? vibes.join(', ') : vibes,
         direccion, horario, whatsapp, instagram,
-        facebook, sitio_web, rango_precio, lat, lng
+        facebook, sitio_web, rango_precio, lat, lng, menuUrl
       ]
     );
 
-    // Generar embedding
     const businessId = inserted[0].id;
+
+    // Si hay menú, extraer su texto automáticamente
+    let menuTexto = null;
+    if (menuUrl) {
+      try {
+        const { obtenerImagenesDelMenu } = require('../services/cloudinary');
+        const { extraerTextoDeMenu } = require('../services/menu');
+        const imagenes = await obtenerImagenesDelMenu(menuUrl, null);
+        menuTexto = await extraerTextoDeMenu(imagenes);
+        await pool.query(
+          'UPDATE businesses SET menu_texto = $1 WHERE id = $2',
+          [menuTexto, businessId]
+        );
+      } catch (e) {
+        console.error('No se pudo extraer el menú automáticamente:', e.message);
+        // El negocio se aprueba igual; el menú se puede cargar luego desde el admin
+      }
+    }
+
+    // Generar embedding (incluyendo el menú si se extrajo)
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -170,8 +196,9 @@ router.post('/confirmar/:id', verificarToken, async (req, res) => {
       `Vibes: ${Array.isArray(vibes) ? vibes.join(', ') : vibes}`,
       `Dirección: ${direccion}`,
       `Precio: ${rango_precio || ''}`,
-      `Horario: ${horario || ''}`
-    ].join('\n');
+      `Horario: ${horario || ''}`,
+      menuTexto ? `Menú y productos que ofrece:\n${menuTexto}` : ''
+    ].filter(Boolean).join('\n');
 
     const embeddingRes = await openai.embeddings.create({
       model: 'text-embedding-3-small',
@@ -214,24 +241,41 @@ router.get('/aprobar/:id', verificarToken, async (req, res) => {
 
     const s = rows[0];
 
-    // Insertar en businesses
+    // Insertar en businesses (incluyendo el menu_url si existe)
     const { rows: inserted } = await pool.query(
       `INSERT INTO businesses (
         nombre, categoria, descripcion, descripcion_emocional,
         vibes, direccion, horario, whatsapp, instagram,
-        facebook, sitio_web, rango_precio, lat, lng, active
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true)
+        facebook, sitio_web, rango_precio, lat, lng, active, menu_url
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true,$15)
       RETURNING id`,
       [
         s.nombre, s.categoria, s.descripcion, s.descripcion_emocional,
         s.vibes, s.direccion, s.horario, s.whatsapp, s.instagram,
-        s.facebook, s.sitio_web, s.rango_precio, s.lat, s.lng
+        s.facebook, s.sitio_web, s.rango_precio, s.lat, s.lng, s.menu_url
       ]
     );
 
-    // Generar embedding
     const businessId = inserted[0].id;
-    const { buscarPorEmbedding } = require('../services/openai');
+
+    // Si hay menú, extraer su texto automáticamente
+    let menuTexto = null;
+    if (s.menu_url) {
+      try {
+        const { obtenerImagenesDelMenu } = require('../services/cloudinary');
+        const { extraerTextoDeMenu } = require('../services/menu');
+        const imagenes = await obtenerImagenesDelMenu(s.menu_url, null);
+        menuTexto = await extraerTextoDeMenu(imagenes);
+        await pool.query(
+          'UPDATE businesses SET menu_texto = $1 WHERE id = $2',
+          [menuTexto, businessId]
+        );
+      } catch (e) {
+        console.error('No se pudo extraer el menú automáticamente:', e.message);
+      }
+    }
+
+    // Generar embedding (incluyendo el menú si se extrajo)
     const OpenAI = require('openai');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -243,8 +287,9 @@ router.get('/aprobar/:id', verificarToken, async (req, res) => {
       `Vibes: ${s.vibes}`,
       `Dirección: ${s.direccion}`,
       `Precio: ${s.rango_precio || ''}`,
-      `Horario: ${s.horario || ''}`
-    ].join('\n');
+      `Horario: ${s.horario || ''}`,
+      menuTexto ? `Menú y productos que ofrece:\n${menuTexto}` : ''
+    ].filter(Boolean).join('\n');
 
     const embeddingRes = await openai.embeddings.create({
       model: 'text-embedding-3-small',
