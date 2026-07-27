@@ -32,12 +32,17 @@ const calcularEstadoNegocio = (horarioDia, horaConsulta) => {
 };
 
 // Trae el estado de "abierto/cerrado ahora" para una lista de negocios
+// Trae el estado de "abierto/cerrado ahora" para una lista de negocios
 const obtenerEstadosNegocios = async (businessIds, momento = new Date()) => {
   if (!businessIds || businessIds.length === 0) return {};
 
-  const diaSemana = momento.getDay(); // 0-6, mismo criterio que guardamos
+  // Convertir a hora de Costa Rica (UTC-6) antes de calcular día y hora.
+  // El servidor corre en UTC, así que sin esto el día y la hora salen corridos 6 horas.
+  const momentoCR = new Date(
+    momento.toLocaleString('en-US', { timeZone: 'America/Costa_Rica' })
+  );
 
-  console.log('DEBUG horario → hora servidor:', momento.toString(), '| dia_semana calculado:', diaSemana, '| hora:', momento.getHours() + ':' + momento.getMinutes());
+  const diaSemana = momentoCR.getDay();
 
   const { rows } = await pool.query(
     `SELECT business_id, dia_semana, hora_apertura, hora_cierre, cerrado
@@ -51,7 +56,7 @@ const obtenerEstadosNegocios = async (businessIds, momento = new Date()) => {
 
   const resultado = {};
   businessIds.forEach(id => {
-    resultado[id] = calcularEstadoNegocio(porNegocio[id], momento);
+    resultado[id] = calcularEstadoNegocio(porNegocio[id], momentoCR);
   });
 
   return resultado;
