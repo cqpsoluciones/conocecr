@@ -37,6 +37,8 @@ const obtenerEstadosNegocios = async (businessIds, momento = new Date()) => {
 
   const diaSemana = momento.getDay(); // 0-6, mismo criterio que guardamos
 
+  console.log('DEBUG horario → hora servidor:', momento.toString(), '| dia_semana calculado:', diaSemana, '| hora:', momento.getHours() + ':' + momento.getMinutes());
+
   const { rows } = await pool.query(
     `SELECT business_id, dia_semana, hora_apertura, hora_cierre, cerrado
      FROM horarios_negocio
