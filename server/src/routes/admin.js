@@ -246,4 +246,28 @@ router.get('/chats/:id', verificarToken, async (req, res) => {
   }
 });
 
+const { obtenerHorariosNegocio, guardarHorariosNegocio } = require('../services/horarios');
+
+// GET /api/admin/negocios/:id/horarios
+router.get('/negocios/:id/horarios', verificarToken, async (req, res) => {
+  try {
+    const horarios = await obtenerHorariosNegocio(req.params.id);
+    res.json(horarios);
+  } catch (err) {
+    console.error('Error al obtener horarios:', err);
+    res.status(500).json({ error: 'Error al obtener horarios' });
+  }
+});
+
+// PUT /api/admin/negocios/:id/horarios
+router.put('/negocios/:id/horarios', verificarToken, async (req, res) => {
+  try {
+    await guardarHorariosNegocio(req.params.id, req.body.horarios);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al guardar horarios:', err);
+    res.status(500).json({ error: 'Error al guardar horarios' });
+  }
+});
+
 module.exports = router;
