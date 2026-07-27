@@ -13,9 +13,13 @@ const CATEGORIAS_DISPONIBLES = [
   'Servicios profesionales', 'Entretenimiento', 'Bar'
 ];
 
-const extraerSenales = async (mensaje) => {
+const extraerSenales = async (mensaje, contextoPrevio) => {
   const prompt = [
     'Eres un analizador de intenciones para una app de descubrimiento de negocios locales en Costa Rica.',
+    '',
+    contextoPrevio
+      ? 'Contexto: esta es una conversación en curso. Lo último que se habló fue:\n' + contextoPrevio + '\n\nEl nuevo mensaje del usuario puede ser una RESPUESTA a esa conversación (ej: dando presupuesto o compañía), no un tema nuevo. Si es así, la intención debe seguir reflejando el tema original, enriquecido con el dato nuevo.'
+      : '',
     '',
     'Analiza el mensaje del usuario y devuelve UNICAMENTE un JSON con esta estructura exacta, sin texto adicional:',
     '{',
@@ -35,7 +39,7 @@ const extraerSenales = async (mensaje) => {
     '- categoria: la categoria mas relevante o null si no aplica',
     '- precio: solo si el usuario lo menciona explicita o implicitamente (barato=Economico, caro=Premium)',
     '- necesita_cercania: true si menciona cerca, por aqui, zona, distancia',
-    '- intencion: resumen en maximo 10 palabras de lo que busca el usuario'
+    '- intencion: resumen en maximo 10 palabras de lo que busca el usuario. Si el mensaje es una respuesta a una pregunta previa (presupuesto, compañía, momento), la intención DEBE mantener el tema original de la conversación, no solo lo último que escribió.'
   ].join('\n');
 
   const response = await openai.chat.completions.create({

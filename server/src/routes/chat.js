@@ -110,7 +110,10 @@ router.post('/', async (req, res) => {
       };
       console.log('Pide más de lo mismo → reutilizando señales guardadas');
     } else {
-      senales = await extraerSenales(message);
+      const contextoPrevio = historial.length > 0
+        ? historial.slice(-2).map(m => (m.role === 'user' ? 'Usuario: ' : 'Conoce: ') + m.content).join('\n')
+        : null;
+      senales = await extraerSenales(message, contextoPrevio);
       console.log('Señales extraídas:', senales);
 
       await pool.query(
@@ -213,7 +216,7 @@ router.post('/', async (req, res) => {
       estado_horario: estadosHorario[b.id] || { tieneHorarioEstructurado: false }
     }));
 
-    
+
     console.log('Negocios enviados al modelo:', negocios.slice(0, 5).map(b => ({ nombre: b.nombre, distancia_km: b.distancia_km })));
 
     // ── Historial de conversaciones anteriores (continuidad) ──────────────────
