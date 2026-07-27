@@ -307,4 +307,40 @@ router.post('/nueva-contrasena', async (req, res) => {
 });
 
 
+// Verifica el token de un usuario (no de admin)
+const verificarUsuario = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  try {
+    const payload = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    if (payload.tipo !== 'usuario') {
+      return res.status(403).json({ error: 'Token inválido' });
+    }
+    req.usuarioId = payload.userId;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Sesión inválida o expirada' });
+  }
+};
+
+// GET /api/usuarios/perfil — ver el perfil de preferencias aprendido
+router.get('/perfil', verificarUsuario, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT nombre, perfil_preferencias, perfil_actualizado FROM usuarios WHERE id = $1',
+      [req.usuarioId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ error: 'Error al obtener el perfil' });
+  }
+});
+
+
 module.exports = router;

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { extraerSenales, generarRespuesta, buscarPorEmbedding } = require('../services/openai');
+const { actualizarPerfilUsuario } = require('../services/perfil');
 
 // Fórmula Haversine para calcular distancia entre dos coordenadas en km
 const calcularDistancia = (lat1, lng1, lat2, lng2) => {
@@ -16,7 +17,6 @@ const calcularDistancia = (lat1, lng1, lat2, lng2) => {
     Math.sin(dLng / 2) * Math.sin(dLng / 2);
   return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1);
 };
-
 
 // Trae un resumen de las conversaciones anteriores del usuario (últimas 5 sesiones)
 const obtenerHistorialUsuario = async (usuarioId, sessionIdActual) => {
@@ -42,8 +42,6 @@ const obtenerHistorialUsuario = async (usuarioId, sessionIdActual) => {
     return `- ${fecha}: ${r.intencion}`;
   }).join('\n');
 };
-
-
 
 // ─── POST /api/chat ───────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
@@ -83,6 +81,9 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // El id de usuario que vamos a usar para todo lo de personalización
+    const uidPersonalizacion = session.usuario_id || userId;
+
     // ── Obtener historial reciente (últimos 10 mensajes) ──────────────────────
     const historialResult = await pool.query(
       `SELECT role, content FROM chat_messages
@@ -93,16 +94,12 @@ router.post('/', async (req, res) => {
     const historial = historialResult.rows.reverse();
 
     // ── Detectar si el usuario pide MÁS de lo mismo ───────────────────────────
-    // Solo cuenta como "pedir más" si el mensaje es corto y no introduce un tema nuevo.
-    // "dame más opciones" → sí. "dame más opciones pero de otro tipo de comida" → no,
-    // eso es una búsqueda nueva y debe extraer señales frescas.
     const pideMasBasico = /^(dame |quer[ií]a |quiero |ten[ée]s |hay )?(m[aá]s|otras?|otros?)\s*(opciones|lugares|alternativas|resultados|negocios)?[\s?!.]*$/i.test(message.trim());
 
     // ── Extraer señales SIEMPRE (salvo que sea un "más de lo mismo" puro) ─────
     let senales;
 
     if (pideMasBasico && session.senales_extraidas) {
-      // Reutilizar las señales de la búsqueda anterior
       senales = {
         vibes: session.vibes_detectadas ? session.vibes_detectadas.split(', ') : [],
         categoria: session.categoria_detectada,
@@ -112,11 +109,9 @@ router.post('/', async (req, res) => {
       };
       console.log('Pide más de lo mismo → reutilizando señales guardadas');
     } else {
-      // Cualquier otro mensaje: señales frescas del mensaje actual
       senales = await extraerSenales(message);
       console.log('Señales extraídas:', senales);
 
-      // Y las guardamos, actualizando la sesión (ya no se congelan en el primer mensaje)
       await pool.query(
         `UPDATE chat_sessions SET
           vibes_detectadas = $1,
@@ -167,8 +162,6 @@ router.post('/', async (req, res) => {
     }
 
     // ── CONTINUIDAD: reinyectar negocios mencionados en los últimos 5 mensajes ─
-    // Si el usuario pregunta "¿y ahí venden hamburguesas?", el negocio del que
-    // hablábamos debe seguir presente aunque la búsqueda nueva no lo devuelva.
     if (!pideMasBasico && historial.length > 0) {
       const ultimosMensajes = historial
         .slice(-5)
@@ -213,15 +206,18 @@ router.post('/', async (req, res) => {
 
     console.log('Negocios enviados al modelo:', negocios.slice(0, 5).map(b => ({ nombre: b.nombre, distancia_km: b.distancia_km })));
 
+    // ── Historial de conversaciones anteriores (continuidad) ──────────────────
+    const historialUsuario = await obtenerHistorialUsuario(uidPersonalizacion, sessionId);
 
-
-// Historial de conversaciones anteriores (solo si hay usuario logueado)
-    const historialUsuario = await obtenerHistorialUsuario(
-      session.usuario_id || userId,
-      sessionId
-    );
-
-
+    // ── Perfil de preferencias aprendido ───────────────────────────────────────
+    let perfilUsuario = null;
+    if (uidPersonalizacion) {
+      const { rows: perfilRows } = await pool.query(
+        'SELECT perfil_preferencias FROM usuarios WHERE id = $1',
+        [uidPersonalizacion]
+      );
+      perfilUsuario = perfilRows[0]?.perfil_preferencias || null;
+    }
 
     // ── Generar respuesta con OpenAI ──────────────────────────────────────────
     const { reply, hasMore } = await generarRespuesta(
@@ -232,7 +228,8 @@ router.post('/', async (req, res) => {
       userLng || session.user_lng,
       senales.intencion,
       userNombre,
-      historialUsuario
+      historialUsuario,
+      perfilUsuario
     );
 
     // ── Guardar mensajes en historial ─────────────────────────────────────────
@@ -246,6 +243,22 @@ router.post('/', async (req, res) => {
        VALUES ($1, $2, $3)`,
       [sessionId, 'assistant', reply]
     );
+
+    // ── Actualizar el perfil en segundo plano (no bloquea la respuesta) ───────
+    if (uidPersonalizacion) {
+      pool.query('SELECT perfil_actualizado FROM usuarios WHERE id = $1', [uidPersonalizacion])
+        .then(({ rows }) => {
+          const ultimaActualizacion = rows[0]?.perfil_actualizado;
+          const debeActualizar = !ultimaActualizacion ||
+            (Date.now() - new Date(ultimaActualizacion).getTime()) > 30 * 60 * 1000;
+          if (debeActualizar) {
+            actualizarPerfilUsuario(uidPersonalizacion).catch(err =>
+              console.error('Error actualizando perfil:', err)
+            );
+          }
+        })
+        .catch(err => console.error('Error verificando perfil:', err));
+    }
 
     res.json({ reply, hasMore, sessionId });
 

@@ -62,7 +62,7 @@ const extraerSenales = async (mensaje) => {
   }
 };
 
-const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion, userNombre, historialUsuario) => {
+const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, intencion, userNombre, historialUsuario, perfilUsuario) => {
   const listaNegocios = negocios.map(function(b) {
     const dist = b.distancia_km ? b.distancia_km + ' km' : null;
     return '- ' + b.nombre + ' (' + b.categoria + ')' +
@@ -109,6 +109,9 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     historialUsuario
       ? '\n# LO QUE ESTA PERSONA HA BUSCADO ANTES\n\n' + historialUsuario + '\n\nEsta persona ya te conoce: tratala como un amigo que se acuerda de ella, no como un desconocido.\n- Cuando encaje naturalmente, hacé un guiño a lo anterior antes de recomendar: "la otra vez andabas buscando algo tranquilo, esta vez veo que querés otra cosa" o "¿otra vez con antojo de café?".\n- NO repitas los mismos lugares que ya le recomendaste en búsquedas parecidas, salvo que sea claramente la mejor opción — y si lo repetís, reconocelo: "sé que ya te lo había mencionado, pero sigue siendo lo mejor para esto".\n- Usá lo que sabés de sus gustos para afinar tu elección, sin anunciar que lo estás haciendo.\n- Nunca recites la lista de sus búsquedas anteriores ni suenes a vigilancia. Un guiño ocasional basta; si no viene al caso, no lo fuerces.'
       : '',
+    perfilUsuario
+      ? '\n# LO QUE SABÉS DE ESTA PERSONA (aprendido con el tiempo)\n\n' + perfilUsuario + '\n\nUsalo para afinar tus recomendaciones sin que se note el esfuerzo: si sabés que suele buscar algo económico, priorizá esas opciones salvo que diga lo contrario; si sabés que suele salir en pareja, dalo por hecho salvo que el mensaje sugiera otra cosa. Nunca le digas a la persona "según tu perfil" ni le recites esta información: es tu intuición sobre ella, no un dato para mostrarle.'
+      : '',
     '',
     negocios.length > 0
       ? '# NEGOCIOS DISPONIBLES PARA ESTA CONVERSACIÓN\n\n' + listaNegocios
@@ -116,7 +119,7 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '',
     '# TU CRITERIO (así pensás, no son pasos mecánicos)',
     '',
-    '1. COMPRENDÉ ANTES DE RECOMENDAR (regla estructural, no opcional). Para CUALQUIER búsqueda de comida, salidas o experiencias, NO PODÉS recomendar hasta conocer estas tres cosas: (a) presupuesto aproximado, (b) con quién va o para qué ocasión, (c) si es para ahora o para otro momento. Si el usuario no las dio ni se deducen claramente de lo que escribió, tu respuesta DEBE ser 1-2 preguntas cortas y conversacionales, sin recomendar todavía. Recomendar sin conocer el presupuesto es la falla más común y la que más molesta: no la cometas. ÚNICA EXCEPCIÓN: pedidos urgentes y específicos ("qué está abierto ya", "algo rápido ahora") → respondé de inmediato.',
+    '1. COMPRENDÉ ANTES DE RECOMENDAR (regla estructural, no opcional). Para CUALQUIER búsqueda de comida, salidas o experiencias, NO PODÉS recomendar hasta conocer estas tres cosas: (a) presupuesto aproximado, (b) con quién va o para qué ocasión, (c) si es para ahora o para otro momento. Si el usuario no las dio ni se deducen claramente de lo que escribió, tu respuesta DEBE ser 1-2 preguntas cortas y conversacionales, sin recomendar todavía. Recomendar sin conocer el presupuesto es la falla más común y la que más molesta: no la cometas. ÚNICA EXCEPCIÓN: pedidos urgentes y específicos ("qué está abierto ya", "algo rápido ahora") → respondé de inmediato. Si ya tenés esta información en el PERFIL aprendido de la persona, no hace falta preguntarla de nuevo: usala directamente.',
     '2. Recomendá como experto, no como catálogo: máximo 3 opciones, una destacada como "⭐ Mi elección para vos" y el resto como alternativas, cada una con su porqué breve conectado a lo que pidió la persona.',
     '3. Calidad sobre cantidad: si solo una opción encaja de verdad, mostrá solo esa. Si NINGUNA encaja, decilo — es mejor que una mala recomendación.',
     '4. Honestidad radical: si nada cumple exactamente (horario, precio, tipo), decilo claro y ofrecé lo más cercano explicando en qué se queda corto.',
@@ -209,4 +212,3 @@ const buscarPorEmbedding = async (consulta, limite = 20) => {
 };
 
 module.exports = { extraerSenales, generarRespuesta, buscarPorEmbedding };
-
