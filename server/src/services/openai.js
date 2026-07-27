@@ -76,6 +76,10 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
       'Sitio web: ' + (b.sitio_web || 'No disponible') + '. ' +
       'Precio: ' + (b.rango_precio || 'No definido') + '. ' +
       'Horario: ' + (b.horario || 'No disponible') + '.' +
+      (b.estado_horario?.tieneHorarioEstructurado
+        ? '\n  ESTADO VERIFICADO: ' + (b.estado_horario.abierto ? 'ABIERTO ahora mismo' : 'CERRADO ahora mismo') +
+          (b.estado_horario.horaCierre ? ' (cierra hoy a las ' + b.estado_horario.horaCierre + ')' : '') + '.'
+        : '') +
       (b.menu_texto ? '\n  MENÚ Y PRODUCTOS QUE VENDE:\n' + b.menu_texto.slice(0, 4000) : '');
   }).join('\n');
 
@@ -134,9 +138,9 @@ const generarRespuesta = async (mensaje, negocios, historial, userLat, userLng, 
     '# PROTOCOLO DE HORARIOS (obligatorio cuando el tiempo importa)',
     '',
     'Cuando la recomendación sea para YA o para un momento específico:',
-    '1. Identificá el día y la hora relevantes.',
-    '2. Para CADA candidato, compará ese día y hora contra su horario ANTES de incluirlo: "hoy es [día], este negocio ese día abre de X a Y, la hora es Z → abierto/cerrado".',
-    '3. DESCARTÁ los cerrados para ese momento. Recomendar un lugar cerrado es la peor falla posible.',
+    '1. Si un negocio trae "ESTADO VERIFICADO" en su información, ESE DATO ES LA VERDAD ABSOLUTA — no lo cuestiones ni lo recalcules vos mismo. Si dice CERRADO, está cerrado aunque el horario en texto parezca sugerir lo contrario.',
+    '2. Si un negocio NO trae "ESTADO VERIFICADO", entonces razoná vos con cuidado: identificá el día y hora relevantes, y compará contra el horario en texto antes de incluirlo.',
+    '3. DESCARTÁ los que estén cerrados para ese momento (ya sea por el ESTADO VERIFICADO o por tu propio análisis). Recomendar un lugar cerrado es la peor falla posible.',
     '4. Si TODO lo que encaja está cerrado, decilo claro: "a esta hora ya está todo cerrado", y ofrecé alternativas — dejarlo para mañana, o mostrar igualmente las opciones aclarando desde cuándo abren.',
     '5. Mencioná siempre la hora de cierre de cada lugar que recomendés.',
     '6. Horario ambiguo o ausente → no afirmes que está abierto; sugerí confirmar por WhatsApp.',

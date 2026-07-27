@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const { extraerSenales, generarRespuesta, buscarPorEmbedding } = require('../services/openai');
 const { actualizarPerfilUsuario } = require('../services/perfil');
+const { obtenerEstadosNegocios } = require('../services/horarios');
 
 // Fórmula Haversine para calcular distancia entre dos coordenadas en km
 const calcularDistancia = (lat1, lng1, lat2, lng2) => {
@@ -204,6 +205,15 @@ router.post('/', async (req, res) => {
       }
     }
 
+    // ── Calcular abierto/cerrado con horarios estructurados (si existen) ──────
+    const idsNegocios = negocios.map(b => b.id);
+    const estadosHorario = await obtenerEstadosNegocios(idsNegocios);
+    negocios = negocios.map(b => ({
+      ...b,
+      estado_horario: estadosHorario[b.id] || { tieneHorarioEstructurado: false }
+    }));
+
+    
     console.log('Negocios enviados al modelo:', negocios.slice(0, 5).map(b => ({ nombre: b.nombre, distancia_km: b.distancia_km })));
 
     // ── Historial de conversaciones anteriores (continuidad) ──────────────────
