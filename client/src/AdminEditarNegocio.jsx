@@ -7,6 +7,8 @@ import './AdminPanel.css'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
 export default function AdminEditarNegocio() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -16,6 +18,9 @@ export default function AdminEditarNegocio() {
   const [error, setError] = useState('')
   const [subiendoMenu, setSubiendoMenu] = useState(false)
   const [avisoMenu, setAvisoMenu] = useState('')
+  const [horarios, setHorarios] = useState([])
+  const [guardandoHorarios, setGuardandoHorarios] = useState(false)
+  const [avisoHorarios, setAvisoHorarios] = useState('')
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -28,6 +33,12 @@ export default function AdminEditarNegocio() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setNegocio(data)
+
+      const { data: hs } = await axios.get(`${API_URL}/admin/negocios/${id}/horarios`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setHorarios(hs)
+
       setEstado('ready')
     } catch (e) {
       if (e.response?.status === 401) {
@@ -42,6 +53,12 @@ export default function AdminEditarNegocio() {
 
   const set = (field, value) => setNegocio(prev => ({ ...prev, [field]: value }))
 
+  const setHorario = (dia, campo, valor) => {
+    setHorarios(prev => prev.map(h =>
+      h.dia_semana === dia ? { ...h, [campo]: valor } : h
+    ))
+  }
+
   const guardar = async () => {
     setEstado('saving')
     try {
@@ -52,6 +69,22 @@ export default function AdminEditarNegocio() {
     } catch (e) {
       setError('Error al guardar los cambios')
       setEstado('ready')
+    }
+  }
+
+  const guardarHorarios = async () => {
+    setGuardandoHorarios(true)
+    setAvisoHorarios('')
+    try {
+      await axios.put(`${API_URL}/admin/negocios/${id}/horarios`,
+        { horarios },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setAvisoHorarios('Horarios guardados correctamente.')
+    } catch (e) {
+      setAvisoHorarios('Error al guardar los horarios.')
+    } finally {
+      setGuardandoHorarios(false)
     }
   }
 
@@ -223,7 +256,59 @@ export default function AdminEditarNegocio() {
           </div>
 
           <div className="reg-section">
-            <div className="reg-section-title">UBICACIÓN Y HORARIO</div>
+            <div className="reg-section-title">HORARIOS</div>
+            <span className="reg-hint" style={{ marginBottom: '16px', display: 'block' }}>
+              Cargá el horario de cada día. Si el negocio tiene horario partido (cierra al mediodía y reabre), usá el segundo turno. Si abre corrido, dejá el segundo turno vacío. Marcá "Cerrado" en los días que no abre. Para horarios que cruzan la medianoche (ej: cierra a la 1:30 am), poné la hora de cierre normalmente.
+            </span>
+
+            <div className="horarios-tabla">
+              {horarios.map(h => (
+                <div key={h.dia_semana} className="horario-fila">
+                  <div className="horario-dia">{DIAS[h.dia_semana]}</div>
+
+                  <label className="horario-cerrado">
+                    <input
+                      type="checkbox"
+                      checked={h.cerrado}
+                      onChange={e => setHorario(h.dia_semana, 'cerrado', e.target.checked)}
+                    />
+                    Cerrado
+                  </label>
+
+                  {!h.cerrado && (
+                    <div className="horario-turnos">
+                      <div className="horario-turno">
+                        <input type="time" value={h.hora_apertura} onChange={e => setHorario(h.dia_semana, 'hora_apertura', e.target.value)} />
+                        <span>a</span>
+                        <input type="time" value={h.hora_cierre} onChange={e => setHorario(h.dia_semana, 'hora_cierre', e.target.value)} />
+                      </div>
+                      <div className="horario-turno">
+                        <input type="time" value={h.hora_apertura_2} onChange={e => setHorario(h.dia_semana, 'hora_apertura_2', e.target.value)} placeholder="Turno 2 (opcional)" />
+                        <span>a</span>
+                        <input type="time" value={h.hora_cierre_2} onChange={e => setHorario(h.dia_semana, 'hora_cierre_2', e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {avisoHorarios && (
+              <div style={{ color: '#7ecfa4', fontSize: '13px', marginTop: '12px' }}>{avisoHorarios}</div>
+            )}
+
+            <button
+              className="reg-submit"
+              style={{ marginTop: '16px' }}
+              onClick={guardarHorarios}
+              disabled={guardandoHorarios}
+            >
+              {guardandoHorarios ? 'GUARDANDO HORARIOS...' : 'GUARDAR HORARIOS'}
+            </button>
+          </div>
+
+          <div className="reg-section">
+            <div className="reg-section-title">UBICACIÓN Y HORARIO (TEXTO)</div>
 
             <div className="reg-field">
               <label className="reg-label">DIRECCIÓN</label>
@@ -231,8 +316,9 @@ export default function AdminEditarNegocio() {
             </div>
 
             <div className="reg-field">
-              <label className="reg-label">HORARIO</label>
+              <label className="reg-label">HORARIO (TEXTO QUE VE EL USUARIO)</label>
               <input className="reg-input" value={negocio.horario || ''} onChange={e => set('horario', e.target.value)} />
+              <span className="reg-hint">Este texto es solo para mostrar. El cálculo de "abierto/cerrado" usa los horarios de arriba.</span>
             </div>
 
             <div className="reg-grid-2">

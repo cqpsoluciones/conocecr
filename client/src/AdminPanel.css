@@ -309,3 +309,71 @@
     display: inline-block;
   }
 }
+
+
+/* ── Tabla de horarios ─────────────────────────────── */
+.horarios-tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.horario-fila {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.horario-dia {
+  width: 90px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #f0f0f0;
+  font-weight: 500;
+}
+
+.horario-cerrado {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #a0a0aa;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.horario-cerrado input {
+  width: 15px;
+  height: 15px;
+  accent-color: #7ecfa4;
+  cursor: pointer;
+}
+
+.horario-turnos {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.horario-turno {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.horario-turno input[type="time"] {
+  background: #111114;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #f0f0f0;
+  font-size: 13px;
+}
+
+.horario-turno span {
+  color: #6b6b75;
+  font-size: 12px;
+}
