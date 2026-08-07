@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
 router.get('/directorio', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, nombre, categoria, descripcion, resumen_directorio imagen_url, sitio_web
+      `SELECT id, nombre, categoria, descripcion, resumen_directorio, imagen_url, sitio_web
        FROM businesses
        WHERE en_directorio = true AND active = true
        ORDER BY nombre ASC`
