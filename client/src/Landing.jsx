@@ -31,7 +31,7 @@ export default function Landing() {
         setMenuAbierto(false)
         }} className="active">Inicio</a></li>
         <li><a href="/directorio" onClick={() => setMenuAbierto(false)}>Directorio</a></li>
-        <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
+        <li><a href="/contacto" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
         <li><a href="/registro" className="nav-cta" onClick={() => setMenuAbierto(false)}>Agregar negocio</a></li>
         {!usuario ? (
           <li><a href="/login" className="nav-cta" onClick={() => setMenuAbierto(false)}>Iniciar sesión</a></li>

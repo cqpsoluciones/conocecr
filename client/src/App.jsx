@@ -11,6 +11,7 @@ import Login from './Login'
 import RecuperarPassword from './RecuperarPassword'
 import NuevaPassword from './NuevaPassword'
 import Directorio from './Directorio'
+import Contacto from './Contacto'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/recuperar" element={<RecuperarPassword />} />
         <Route path="/nueva-contrasena" element={<NuevaPassword />} />
         <Route path="/directorio" element={<Directorio />} />
+        <Route path="/contacto" element={<Contacto />} />
       </Routes>
     </BrowserRouter>
   )
