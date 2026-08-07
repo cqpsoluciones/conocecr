@@ -21,6 +21,8 @@ export default function Directorio() {
 
   return (
     <>
+      <div className="dir-bg"></div>
+
       <nav id="navbar">
         <a className="nav-brand" href="/">
           <img
@@ -87,7 +89,9 @@ export default function Directorio() {
                   </div>
                   <div className="dir-card-body">
                     <h3>{n.nombre}</h3>
-                    {n.descripcion && <p>{n.descripcion}</p>}
+                    {(n.resumen_directorio || n.descripcion) && (
+                      <p>{n.resumen_directorio || n.descripcion}</p>
+                    )}
                     {n.sitio_web && <span className="dir-card-link">Visitar sitio →</span>}
                   </div>
                 </Card>

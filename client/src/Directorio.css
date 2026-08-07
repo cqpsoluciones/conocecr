@@ -1,14 +1,27 @@
-/* ── Hero del directorio ─────────────────────────────── */
-.dir-hero {
-  padding: 120px 24px 60px;
-  text-align: center;
-  background: radial-gradient(ellipse at top, rgba(126,207,164,0.08), transparent 60%);
+/* ── Fondo animado sutil ─────────────────────────────── */
+.dir-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(126,207,164,0.06), transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(126,207,164,0.05), transparent 40%),
+    #0a0a0b;
+  animation: dirBgShift 18s ease-in-out infinite alternate;
 }
 
-.dir-hero-content {
-  max-width: 680px;
-  margin: 0 auto;
+@keyframes dirBgShift {
+  0%   { background-position: 0% 0%, 100% 100%; }
+  100% { background-position: 10% 15%, 85% 80%; }
 }
+
+/* ── Hero ────────────────────────────────────────────── */
+.dir-hero {
+  padding: 120px 24px 50px;
+  text-align: center;
+}
+
+.dir-hero-content { max-width: 680px; margin: 0 auto; }
 
 .dir-eyebrow {
   font-size: 13px;
@@ -19,7 +32,7 @@
 }
 
 .dir-title {
-  font-size: clamp(32px, 5vw, 52px);
+  font-size: clamp(30px, 5vw, 52px);
   line-height: 1.1;
   margin-bottom: 20px;
   color: #fff;
@@ -58,7 +71,8 @@
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.dir-card.clickable:hover {
+/* Hover en TODAS las tarjetas, tengan enlace o no */
+.dir-card:hover {
   transform: translateY(-6px);
   border-color: rgba(126,207,164,0.4);
   box-shadow: 0 12px 40px rgba(0,0,0,0.4);
@@ -83,9 +97,7 @@
   transition: transform 0.4s ease;
 }
 
-.dir-card.clickable:hover .dir-card-img img {
-  transform: scale(1.05);
-}
+.dir-card:hover .dir-card-img img { transform: scale(1.05); }
 
 .dir-card-placeholder {
   width: 100%;
@@ -131,10 +143,6 @@
   line-height: 1.55;
   color: #a0a0aa;
   margin-bottom: 16px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   flex: 1;
 }
 
@@ -152,9 +160,24 @@
   padding: 80px 20px;
 }
 
-/* ── Móvil ───────────────────────────────────────────── */
+/* ── Móvil: dos columnas compactas ───────────────────── */
 @media (max-width: 768px) {
-  .dir-hero { padding: 100px 20px 40px; }
-  .dir-galeria { grid-template-columns: 1fr; gap: 20px; }
-  .dir-galeria-wrap { padding: 20px 20px 60px; }
+  .dir-hero { padding: 100px 20px 30px; }
+
+  .dir-galeria-wrap { padding: 16px 16px 60px; }
+
+  .dir-galeria {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .dir-card-body { padding: 12px; }
+
+  .dir-card-body h3 { font-size: 15px; margin-bottom: 5px; }
+
+  .dir-card-body p { font-size: 12px; line-height: 1.4; margin-bottom: 10px; }
+
+  .dir-card-cat { font-size: 9px; padding: 4px 9px; }
+
+  .dir-card-link { font-size: 12px; }
 }
