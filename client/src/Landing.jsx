@@ -30,7 +30,7 @@ export default function Landing() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
         setMenuAbierto(false)
         }} className="active">Inicio</a></li>
-        <li><a href="https://www.crconoce.com/category/all-products" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Directorio</a></li>
+        <li><a href="/directorio" onClick={() => setMenuAbierto(false)}>Directorio</a></li>
         <li><a href="https://www.crconoce.com/contacto" target="_blank" rel="noopener" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
         <li><a href="/registro" className="nav-cta" onClick={() => setMenuAbierto(false)}>Agregar negocio</a></li>
         {!usuario ? (

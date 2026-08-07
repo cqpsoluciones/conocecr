@@ -10,6 +10,7 @@ import CrearCuenta from './CrearCuenta'
 import Login from './Login'
 import RecuperarPassword from './RecuperarPassword'
 import NuevaPassword from './NuevaPassword'
+import Directorio from './Directorio'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/recuperar" element={<RecuperarPassword />} />
         <Route path="/nueva-contrasena" element={<NuevaPassword />} />
+        <Route path="/directorio" element={<Directorio />} />
       </Routes>
     </BrowserRouter>
   )
