@@ -34,6 +34,7 @@ app.use('/api/registro', require('./routes/registro'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/usuarios', require('./routes/usuarios'));
+app.use('/api/contacto', require('./routes/contacto'));
 
 // Ruta de prueba para verificar que el servidor funciona
 app.get('/api/health', (req, res) => {
