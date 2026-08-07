@@ -33,4 +33,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/businesses/directorio — negocios seleccionados para exhibición pública
+router.get('/directorio', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, nombre, categoria, descripcion, imagen_url, sitio_web
+       FROM businesses
+       WHERE en_directorio = true AND active = true
+       ORDER BY nombre ASC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error al obtener directorio:', err);
+    res.status(500).json({ error: 'Error al cargar el directorio' });
+  }
+});
+
 module.exports = router;
