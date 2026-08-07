@@ -70,4 +70,29 @@ const obtenerImagenesDelMenu = async (menuUrl, fileBuffer) => {
   return urls;
 };
 
-module.exports = { subirMenu, obtenerImagenesDelMenu, contarPaginasPDF };
+const subirImagen = async (fileBuffer, nombreNegocio) => {
+  configurar();
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'conocecr/negocios',
+        public_id: `${Date.now()}-${nombreNegocio.replace(/\s+/g, '_')}`,
+        resource_type: 'image',
+        transformation: [{ width: 800, height: 600, crop: 'fill', quality: 'auto' }]
+      },
+      (error, result) => {
+        if (error) {
+          console.error('Error subiendo imagen:', JSON.stringify(error, null, 2));
+          reject(error);
+        } else {
+          resolve(result.secure_url);
+        }
+      }
+    );
+    stream.end(fileBuffer);
+  });
+};
+
+
+module.exports = { subirMenu, obtenerImagenesDelMenu, contarPaginasPDF, subirImagen };

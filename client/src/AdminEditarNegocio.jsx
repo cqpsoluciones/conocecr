@@ -21,7 +21,10 @@ export default function AdminEditarNegocio() {
   const [horarios, setHorarios] = useState([])
   const [guardandoHorarios, setGuardandoHorarios] = useState(false)
   const [avisoHorarios, setAvisoHorarios] = useState('')
+  const [subiendoImagen, setSubiendoImagen] = useState(false)
+  const [avisoImagen, setAvisoImagen] = useState('')
   const fileRef = useRef(null)
+  const imagenRef = useRef(null)
 
   useEffect(() => {
     if (token) cargar()
@@ -125,6 +128,34 @@ export default function AdminEditarNegocio() {
     }
   }
 
+  const subirImagen = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setSubiendoImagen(true)
+    setAvisoImagen('')
+    setError('')
+
+    const formData = new FormData()
+    formData.append('imagen', file)
+
+    try {
+      const { data } = await axios.post(
+        `${API_URL}/admin/negocios/${id}/imagen`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setNegocio(prev => ({ ...prev, imagen_url: data.imagen_url }))
+      setAvisoImagen('Imagen subida correctamente.')
+    } catch (err) {
+      const resp = err.response?.data
+      setError((resp && resp.error) || 'Error al subir la imagen')
+    } finally {
+      setSubiendoImagen(false)
+      if (imagenRef.current) imagenRef.current.value = ''
+    }
+  }
+
   if (!token) {
     return <AdminLogin onLogin={(t) => setToken(t)} />
   }
@@ -200,6 +231,56 @@ export default function AdminEditarNegocio() {
               <label className="reg-label">VIBES (separadas por coma)</label>
               <input className="reg-input" value={negocio.vibes || ''} onChange={e => set('vibes', e.target.value)} />
             </div>
+          </div>
+
+          <div className="reg-section">
+            <div className="reg-section-title">DIRECTORIO</div>
+
+            <label className="usr-check" style={{ marginBottom: '20px' }}>
+              <input
+                type="checkbox"
+                checked={negocio.en_directorio || false}
+                onChange={e => set('en_directorio', e.target.checked)}
+              />
+              <span>Mostrar este negocio en el directorio público (servicio contratado)</span>
+            </label>
+
+            <div className="reg-field">
+              <label className="reg-label">IMAGEN DEL NEGOCIO (para el directorio)</label>
+              <div className="reg-file-wrap">
+                <input
+                  ref={imagenRef}
+                  id="imagen-file"
+                  className="reg-file-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={subirImagen}
+                  disabled={subiendoImagen}
+                />
+                <label className="reg-file-label" htmlFor="imagen-file">
+                  {subiendoImagen ? 'Subiendo imagen...' : 'Elegir imagen (PNG, JPG o WEBP)'}
+                </label>
+              </div>
+              <span className="reg-hint">
+                Se redimensiona automáticamente. Ideal una imagen horizontal, representativa del negocio.
+              </span>
+            </div>
+
+            {avisoImagen && (
+              <div className="reg-field" style={{ color: '#7ecfa4', fontSize: '13px' }}>
+                {avisoImagen}
+              </div>
+            )}
+
+            {negocio.imagen_url && (
+              <div className="reg-field">
+                <img
+                  src={negocio.imagen_url}
+                  alt={negocio.nombre}
+                  style={{ maxWidth: '280px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="reg-section">

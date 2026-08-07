@@ -1,49 +1,60 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const pool = require('../db');
-const { verificarToken } = require('../middleware/auth');
 const { subirMenu, obtenerImagenesDelMenu } = require('../services/cloudinary');
 const { extraerTextoDeMenu } = require('../services/menu');
+const { obtenerHorariosNegocio, guardarHorariosNegocio } = require('../services/horarios');
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const tiposPermitidos = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (tiposPermitidos.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten archivos PNG, JPG o PDF'));
-    }
-  }
+  limits: { fileSize: 25 * 1024 * 1024 }
 });
 
-// Genera el embedding de un negocio incluyendo su menú (fuente única de verdad)
-const regenerarEmbedding = async (id) => {
+// Middleware: verificar token de admin
+const verificarToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  try {
+    const payload = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+    if (!payload.admin) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Sesión inválida o expirada' });
+  }
+};
+
+// Función para regenerar el embedding de un negocio
+const regenerarEmbedding = async (businessId) => {
+  const OpenAI = require('openai');
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
   const { rows } = await pool.query(
     `SELECT nombre, categoria, descripcion, descripcion_emocional,
             vibes, direccion, rango_precio, horario, menu_texto
      FROM businesses WHERE id = $1`,
-    [id]
+    [businessId]
   );
+
   if (rows.length === 0) return;
   const b = rows[0];
 
   const texto = [
     `Nombre: ${b.nombre}`,
     `Categoría: ${b.categoria}`,
-    `Descripción: ${b.descripcion || ''}`,
-    `Descripción emocional: ${b.descripcion_emocional || ''}`,
-    `Vibes: ${b.vibes || ''}`,
-    `Dirección: ${b.direccion || ''}`,
+    `Descripción: ${b.descripcion}`,
+    `Descripción emocional: ${b.descripcion_emocional}`,
+    `Vibes: ${b.vibes}`,
+    `Dirección: ${b.direccion}`,
     `Precio: ${b.rango_precio || ''}`,
     `Horario: ${b.horario || ''}`,
     b.menu_texto ? `Menú y productos que ofrece:\n${b.menu_texto}` : ''
   ].filter(Boolean).join('\n');
-
-  const OpenAI = require('openai');
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const embeddingRes = await openai.embeddings.create({
     model: 'text-embedding-3-small',
@@ -53,26 +64,17 @@ const regenerarEmbedding = async (id) => {
   const embedding = embeddingRes.data[0].embedding;
   await pool.query(
     'UPDATE businesses SET embedding = $1 WHERE id = $2',
-    [`[${embedding.join(',')}]`, id]
+    [`[${embedding.join(',')}]`, businessId]
   );
 };
 
-// GET /api/admin/negocios — listar todos los negocios (con búsqueda opcional)
+// GET /api/admin/negocios — listar todos
 router.get('/negocios', verificarToken, async (req, res) => {
   try {
-    const { q } = req.query;
-
-    let query = 'SELECT id, nombre, categoria, rango_precio, active, created_at FROM businesses';
-    let params = [];
-
-    if (q) {
-      query += ' WHERE nombre ILIKE $1 OR categoria ILIKE $1';
-      params.push(`%${q}%`);
-    }
-
-    query += ' ORDER BY nombre';
-
-    const { rows } = await pool.query(query, params);
+    const { rows } = await pool.query(
+      `SELECT id, nombre, categoria, active, en_directorio, created_at
+       FROM businesses ORDER BY nombre`
+    );
     res.json(rows);
   } catch (err) {
     console.error('Error al listar negocios:', err);
@@ -80,7 +82,7 @@ router.get('/negocios', verificarToken, async (req, res) => {
   }
 });
 
-// GET /api/admin/negocios/:id — obtener un negocio
+// GET /api/admin/negocios/:id — obtener uno
 router.get('/negocios/:id', verificarToken, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -93,162 +95,131 @@ router.get('/negocios/:id', verificarToken, async (req, res) => {
     res.json(rows[0]);
   } catch (err) {
     console.error('Error al obtener negocio:', err);
-    res.status(500).json({ error: 'Error al obtener el negocio' });
+    res.status(500).json({ error: 'Error al obtener negocio' });
   }
 });
 
-// PUT /api/admin/negocios/:id — editar negocio (regenera embedding)
+// PUT /api/admin/negocios/:id — actualizar
 router.put('/negocios/:id', verificarToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const {
-      nombre, categoria, descripcion, descripcion_emocional,
-      vibes, direccion, horario, whatsapp, instagram,
-      facebook, sitio_web, rango_precio, lat, lng, active,
-      menu_texto
-    } = req.body;
+    const camposPermitidos = [
+      'nombre', 'categoria', 'descripcion', 'descripcion_emocional',
+      'vibes', 'direccion', 'whatsapp', 'instagram', 'facebook',
+      'sitio_web', 'rango_precio', 'horario', 'lat', 'lng',
+      'active', 'menu_texto', 'en_directorio', 'imagen_url'
+    ];
 
+    const updates = [];
+    const values = [];
+    let i = 1;
+
+    for (const campo of camposPermitidos) {
+      if (req.body[campo] !== undefined) {
+        updates.push(`${campo} = $${i}`);
+        values.push(req.body[campo]);
+        i++;
+      }
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    values.push(req.params.id);
     await pool.query(
-      `UPDATE businesses SET
-        nombre = $1, categoria = $2, descripcion = $3, descripcion_emocional = $4,
-        vibes = $5, direccion = $6, horario = $7, whatsapp = $8, instagram = $9,
-        facebook = $10, sitio_web = $11, rango_precio = $12, lat = $13, lng = $14,
-        active = $15, menu_texto = $16
-      WHERE id = $17`,
-      [
-        nombre, categoria, descripcion, descripcion_emocional,
-        Array.isArray(vibes) ? vibes.join(', ') : vibes,
-        direccion, horario, whatsapp, instagram,
-        facebook, sitio_web, rango_precio, lat, lng, active,
-        menu_texto || null, id
-      ]
+      `UPDATE businesses SET ${updates.join(', ')} WHERE id = $${i}`,
+      values
     );
 
-    await regenerarEmbedding(id);
+    // Regenerar embedding si cambió algo relevante para la búsqueda
+    const camposRelevantes = ['nombre', 'categoria', 'descripcion', 'descripcion_emocional', 'vibes', 'direccion', 'rango_precio', 'horario', 'menu_texto'];
+    if (camposRelevantes.some(c => req.body[c] !== undefined)) {
+      await regenerarEmbedding(req.params.id);
+    }
 
     res.json({ ok: true });
   } catch (err) {
-    console.error('Error al editar negocio:', err);
-    res.status(500).json({ error: 'Error al editar el negocio' });
+    console.error('Error al actualizar negocio:', err);
+    res.status(500).json({ error: 'Error al actualizar negocio' });
   }
 });
 
-// POST /api/admin/negocios/:id/menu — subir menú (imagen o PDF) y extraer su texto con IA
+// POST /api/admin/negocios/:id/menu — subir y extraer menú
 router.post('/negocios/:id/menu', verificarToken, upload.single('menu'), async (req, res) => {
   try {
-    const { id } = req.params;
-
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió ningún archivo' });
     }
 
-    const { rows } = await pool.query('SELECT nombre FROM businesses WHERE id = $1', [id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Negocio no encontrado' });
-    }
-    const nombreNegocio = rows[0].nombre;
+    const { rows } = await pool.query('SELECT nombre FROM businesses WHERE id = $1', [req.params.id]);
+    const nombre = rows[0]?.nombre || 'negocio';
 
-    // 1. Subir a Cloudinary
-    const menuUrl = await subirMenu(req.file.buffer, nombreNegocio);
+    const menuUrl = await subirMenu(req.file.buffer, nombre);
 
-    // 2. Obtener las imágenes legibles (si es PDF, una por página)
-    const imagenes = await obtenerImagenesDelMenu(menuUrl, req.file.buffer);
-
-    // 3. Extraer el texto con visión de gpt-4o
     let menuTexto;
     try {
+      const imagenes = await obtenerImagenesDelMenu(menuUrl, req.file.buffer);
       menuTexto = await extraerTextoDeMenu(imagenes);
-    } catch (e) {
-      // Guardamos la imagen igual: el admin puede escribir el texto a mano
-      await pool.query('UPDATE businesses SET menu_url = $1 WHERE id = $2', [menuUrl, id]);
+    } catch (extractError) {
+      await pool.query('UPDATE businesses SET menu_url = $1 WHERE id = $2', [menuUrl, req.params.id]);
       return res.status(422).json({
-        error: 'El archivo se subió, pero no se pudo leer el menú automáticamente. Podés escribir el texto a mano.',
         menu_url: menuUrl,
-        menu_texto: ''
+        error: 'La imagen se subió pero no se pudo leer el menú automáticamente. Podés escribir el texto a mano.'
       });
     }
 
-    // 4. Guardar ambos y regenerar embedding
     await pool.query(
       'UPDATE businesses SET menu_url = $1, menu_texto = $2 WHERE id = $3',
-      [menuUrl, menuTexto, id]
+      [menuUrl, menuTexto, req.params.id]
     );
-    await regenerarEmbedding(id);
 
-    res.json({ ok: true, menu_url: menuUrl, menu_texto: menuTexto, paginas: imagenes.length });
+    await regenerarEmbedding(req.params.id);
 
+    const paginas = menuUrl.toLowerCase().endsWith('.pdf') ? (await obtenerImagenesDelMenu(menuUrl, req.file.buffer)).length : 1;
+
+    res.json({ menu_url: menuUrl, menu_texto: menuTexto, paginas });
   } catch (err) {
     console.error('Error al procesar el menú:', err);
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({ error: 'El archivo es muy pesado. El máximo es 25 MB.' });
     }
+    if (err.http_code === 400 && /File size too large/i.test(err.message || '')) {
+      return res.status(413).json({ error: 'El archivo supera el límite de 10 MB de Cloudinary. Comprimilo e intentá de nuevo.' });
+    }
     res.status(500).json({ error: 'Error al procesar el menú' });
   }
 });
 
-// GET /api/admin/solicitudes — listar solicitudes pendientes
-router.get('/solicitudes', verificarToken, async (req, res) => {
+// POST /api/admin/negocios/:id/imagen — subir imagen del negocio para el directorio
+router.post('/negocios/:id/imagen', verificarToken, upload.single('imagen'), async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      'SELECT id, nombre, categoria, estado, created_at FROM solicitudes ORDER BY created_at DESC'
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al listar solicitudes:', err);
-    res.status(500).json({ error: 'Error al listar solicitudes' });
-  }
-});
-
-
-
-// GET /api/admin/chats — listar sesiones de chat
-router.get('/chats', verificarToken, async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      `SELECT cs.id, cs.created_at, cs.intencion,
-              COUNT(cm.id) as total_mensajes
-       FROM chat_sessions cs
-       LEFT JOIN chat_messages cm ON cm.session_id = cs.id
-       GROUP BY cs.id, cs.created_at, cs.intencion
-       ORDER BY cs.created_at DESC
-       LIMIT 100`
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('Error al listar chats:', err);
-    res.status(500).json({ error: 'Error al listar chats' });
-  }
-});
-
-// GET /api/admin/chats/:id — obtener mensajes de una sesión
-router.get('/chats/:id', verificarToken, async (req, res) => {
-  try {
-    const { rows: sesion } = await pool.query(
-      'SELECT * FROM chat_sessions WHERE id = $1',
-      [req.params.id]
-    );
-
-    const { rows: mensajes } = await pool.query(
-      `SELECT role, content, created_at FROM chat_messages
-       WHERE session_id = $1
-       ORDER BY created_at ASC`,
-      [req.params.id]
-    );
-
-    if (sesion.length === 0) {
-      return res.status(404).json({ error: 'Sesión no encontrada' });
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió ninguna imagen' });
     }
 
-    res.json({ sesion: sesion[0], mensajes });
+    const { subirImagen } = require('../services/cloudinary');
+
+    const { rows } = await pool.query('SELECT nombre FROM businesses WHERE id = $1', [req.params.id]);
+    const nombre = rows[0]?.nombre || 'negocio';
+
+    const imagenUrl = await subirImagen(req.file.buffer, nombre);
+
+    await pool.query(
+      'UPDATE businesses SET imagen_url = $1 WHERE id = $2',
+      [imagenUrl, req.params.id]
+    );
+
+    res.json({ imagen_url: imagenUrl });
   } catch (err) {
-    console.error('Error al obtener chat:', err);
-    res.status(500).json({ error: 'Error al obtener el chat' });
+    console.error('Error al subir imagen:', err);
+    if (err.http_code === 400 && /File size too large/i.test(err.message || '')) {
+      return res.status(413).json({ error: 'La imagen supera el límite de 10 MB. Comprimila e intentá de nuevo.' });
+    }
+    res.status(500).json({ error: 'Error al subir la imagen' });
   }
 });
 
-const { obtenerHorariosNegocio, guardarHorariosNegocio } = require('../services/horarios');
-
-// GET /api/admin/negocios/:id/horarios
+// GET /api/admin/negocios/:id/horarios — obtener horarios estructurados
 router.get('/negocios/:id/horarios', verificarToken, async (req, res) => {
   try {
     const horarios = await obtenerHorariosNegocio(req.params.id);
@@ -259,7 +230,7 @@ router.get('/negocios/:id/horarios', verificarToken, async (req, res) => {
   }
 });
 
-// PUT /api/admin/negocios/:id/horarios
+// PUT /api/admin/negocios/:id/horarios — guardar horarios estructurados
 router.put('/negocios/:id/horarios', verificarToken, async (req, res) => {
   try {
     await guardarHorariosNegocio(req.params.id, req.body.horarios);
