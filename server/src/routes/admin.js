@@ -137,6 +137,24 @@ router.put('/negocios/:id', verificarToken, async (req, res) => {
       await regenerarEmbedding(req.params.id);
     }
 
+    // Si se marcó para directorio y no tiene resumen, generarlo automáticamente
+    if (req.body.en_directorio === true) {
+      const { rows: negRows } = await pool.query(
+        'SELECT nombre, categoria, descripcion, descripcion_emocional, vibes, resumen_directorio FROM businesses WHERE id = $1',
+        [req.params.id]
+      );
+      const neg = negRows[0];
+      if (neg && !neg.resumen_directorio) {
+        try {
+          const { generarResumenDirectorio } = require('../services/menu');
+          const resumen = await generarResumenDirectorio(neg);
+          await pool.query('UPDATE businesses SET resumen_directorio = $1 WHERE id = $2', [resumen, req.params.id]);
+        } catch (e) {
+          console.error('No se pudo generar el resumen de directorio:', e.message);
+        }
+      }
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('Error al actualizar negocio:', err);

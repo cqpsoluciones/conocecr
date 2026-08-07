@@ -50,4 +50,41 @@ const extraerTextoDeMenu = async (urlsImagenes) => {
   return texto;
 };
 
-module.exports = { extraerTextoDeMenu };
+
+// Genera un resumen corto y atractivo del negocio para la tarjeta del directorio
+const generarResumenDirectorio = async (negocio) => {
+  const prompt = [
+    'Sos un redactor publicitario para un directorio de negocios locales en Costa Rica.',
+    'Con la información del negocio, escribí UN resumen corto y atractivo para su tarjeta en el directorio.',
+    '',
+    'Reglas:',
+    '- Máximo 18 palabras, en una sola frase',
+    '- Tono cálido y que invite, pero sin exagerar ni sonar a spam',
+    '- Destacá lo que hace especial al negocio (ambiente, especialidad, para qué es ideal)',
+    '- No repitas el nombre del negocio (ya aparece en la tarjeta)',
+    '- Español de Costa Rica, sin comillas ni signos de más',
+    '- Devolvé SOLO la frase, sin introducción'
+  ].join('\n');
+
+  const info = [
+    `Nombre: ${negocio.nombre}`,
+    `Categoría: ${negocio.categoria}`,
+    `Descripción: ${negocio.descripcion || ''}`,
+    `Descripción emocional: ${negocio.descripcion_emocional || ''}`,
+    `Vibes: ${negocio.vibes || ''}`
+  ].join('\n');
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    max_tokens: 80,
+    temperature: 0.6,
+    messages: [
+      { role: 'system', content: prompt },
+      { role: 'user', content: info }
+    ]
+  });
+
+  return response.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+};
+
+module.exports = { extraerTextoDeMenu, generarResumenDirectorio };
